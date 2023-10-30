@@ -1,9 +1,7 @@
-+TITLE: Eae -- Emacs Awesome Edition
+#+TITLE: Junio Emacs config
 
-*Eae* also means "Hey" in portuguese, and is a common greeting in Brazil, just 
-as this config is a greeting for those coming to Emacs.
-This is my personal config based on several materials that i've encountered 
-and applied. After writing several similar "dotemacs", in this take I'll apply
+This is my personal config based on several materials that I've encountered and
+applied. After writing several similar "dotemacs", in this take I'll apply
 concepts and to make this set of customization reproduceble and easy to read,
 being some of those concepts:
 
@@ -12,14 +10,5 @@ being some of those concepts:
 - base structure directory named `core/' instead of `lisp/'
 - Avoid use of CLIs or scripts by making instead use of
   Emacs powerful customization system
-- Custom keymap system powered by `evil.el', inspired by 
+- Custom keymap system powered by `evil.el', inspired by
   Xah Lee's `xah-fly-keys.el'
-
-
-Naming convention:
-
-  `eae/NAME` : Interactive custom functions
-  `+NAME`    : Library to be used as helper functions. Like `dash.el'
-      (e.g. +split-window-right, +quietly to execute specific actions with no echo)
-  `NAME!`    : Macros that often are a more complete version from Emacs stdlib
-      (e.g. `after!' instead of `with-eval-load-after')
