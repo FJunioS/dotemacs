@@ -12,17 +12,9 @@
   "Expand relative FILE to `user-emacs-directory'."
   (expand-file-name file (file-name-directory emacs-dir)))
 
-;; (defconst config-base-file        (expand-user-emacs-file "config"))
-;; (defconst config-org-file         (concat config-base-file ".org"))
-;; (defconst config-tangled-file     (concat config-base-file ".el"))
-;; (defconst config-stable-base-file (concat config-base-file "-stable"))
-;; (defconst config-stable-file      (concat config-stable-base-file ".el"))
-
 (defvar user-notes-dir (expand "~/sync/notes/"))
 
 ;; TODO: Move to org handler
-;; (defvar org-directory (expand user-notes-dir))
-;; (defvar org-notes (expand user-notes-dir))
 
 (defconst IS-MAC      (eq system-type 'darwin))
 (defconst IS-LINUX    (memq system-type '(gnu gnu/linux gnu/kfreebsd berkeley-unix)))
@@ -36,7 +28,7 @@
                 (file-name-concat
                  (or (getenv-internal "HOME")
                      "~")
-                 "sync/emacs/")))
+                 "~/.emacs.d/")))
            (if (file-directory-p xdg-dir) xdg-dir))
    "~/.emacs_cfg.d/")))
   "Where your private configuration is placed.
@@ -62,9 +54,6 @@ depends on what is found first Must end in a slash.")
                      "~")
                  "sync/")))
            (if (file-directory-p xdg-dir) xdg-dir)))))
-
-(defconst emacs-sync-dir
-          (file-name-concat sync-dir "emacs/"))
 
 (defvar cache-dir
   (expand-file-name "emacs/" (or (getenv-internal "XDG_CACHE_HOME") "~/.cache")))

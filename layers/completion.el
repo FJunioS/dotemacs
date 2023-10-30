@@ -10,8 +10,9 @@
 
   :config
   (add-hook 'escape-hook #'yas-abort-snippet)
-  (let ((yas-dir (expand "snippets/" emacs-sync-dir)))
-    (eval `(setq yas/snippet-dirs '(,yas-dir ,(expand "snippets/" user-emacs-directory )))))
+  (let ((yas-dir (expand "snippets/" emacs-dir)))
+    (eval
+     `(setq yas/snippet-dirs '(,yas-dir ,(expand "snippets/" user-emacs-directory )))))
 
   (setq yas-wrap-around-region t))
 

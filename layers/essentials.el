@@ -8,9 +8,6 @@
 (require 'general)
 (use-package keychain-environment)
 
-(add-function :after after-focus-change-function
-              #'(lambda () (silently! (manual-save-buffer))))
-
 (use-package dashboard
   :ensure t
   :straight (:build t)
@@ -102,6 +99,8 @@
   (general-add-hook 'compilation-filter-hook #'my-colorize-compilation-buffer)
   (noct-handle-popup compilation-mode))
 
+(require 'zone-words)
+
 (use-package vimish-fold
   :config
   (vimish-fold-global-mode))
@@ -149,7 +148,7 @@
   :ghook ('pre-command-hook nil nil nil t)
   :init (recentf-mode)
   :general
-  ("C-x C-r"    #'recentf)
+  ("C-x C-r" #'recentf)
   (leader/file
     "r" #'recentf)
   :config
@@ -280,7 +279,6 @@
   (leader/open "t" #'vterm-toggle)
   (general-def 'normal 'vterm-mode-map
     "q" #'vterm-toggle-hide))
-
 
 (provide 'essentials)
 ;;; essentials.el ends here
