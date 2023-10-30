@@ -1,14 +1,14 @@
 #+TITLE: Junio Emacs config
 
 This is my personal config based on several materials that I've encountered and
-applied. After writing several similar "dotemacs", in this take I'll apply
-concepts and to make this set of customization reproduceble and easy to read,
+applied. After writing several similar "/Dotemacs/", in this take I'll apply
+concepts and to make this set of customization reproducible and easy to read,
 being some of those concepts:
 
 - Use of Layers instead of modules
-- Config in .el instead of parsing .org
-- base structure directory named `core/' instead of `lisp/'
+- Config in =.el= instead of parsing =.org=
+- Base structure directory named =core/= instead of =lisp/=
 - Avoid use of CLIs or scripts by making instead use of
   Emacs powerful customization system
-- Custom keymap system powered by `evil.el', inspired by
-  Xah Lee's `xah-fly-keys.el'
+- Custom keymaps system powered by =evil.el=, inspired by
+  Xah Lee's =xah-fly-keys.el=
