@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: commentblock
+# key: f
+# --
+$1 fn ${2:name}() ${3:-> return} {
+    ${4:body}
+}

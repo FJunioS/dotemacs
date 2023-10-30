@@ -1,0 +1,17 @@
+#+TITLE: Junio Santos Emacs dotfiles
+#+AUTHOR: Junio Santos <info@junio.dev>
+
+* Emacs dotfile
+* Table of contents                                                     :TOC:
+- [[#emacs-dotfile][Emacs dotfile]]
+- [[#packages-used][Packages used]]
+- [[#references][References]]
+- [[#faq][FAQ]]
+
+* Packages used
+* References
+
+* FAQ
+- Why is this in a separete repository?
+  + Simply because Editors like emacs and vim generally contains most of the commits
+  

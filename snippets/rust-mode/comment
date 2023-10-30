@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: commentblock
+# key: c
+// $1 :---
+$2
+// $1 ---:
