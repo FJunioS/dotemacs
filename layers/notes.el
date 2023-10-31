@@ -1,98 +1,184 @@
 ;;; notes.el ---  desc  -*- lexical-binding: t; -*-
 ;;; Commentary:
+;; https://www.reddit.com/r/emacs/comments/d7x7x8/finally_fixing_indentation_of_quoted_lists/
+;; https://emacs.stackexchange.com/questions/10230/how-to-indent-keywords-aligned
 ;;; Code:
 (require 'core-packages)
 (require 'core-lib)
-
 (use-package org
   :straight '(org :type built-in)
   :general
+  ("C-c a" #'org-agenda)
+  (leader/agenda
+    "l" '(org-agenda-list :wk "week List"))
   ('normal 'org-mode-map
-    "tt" #'+org-toggle-todo-and-fold
-    "SPC '" #'org-edit-src-code)
+           "C-t" #'+org-toggle-todo-and-fold
+           "TAB" #'org-cycle
+           "K" #'org-move-subtree-up
+           "J" #'org-move-subtree-down
+           "L" #'org-demote-subtree
+           "H" #'org-promote-subtree
+           "SPC '" #'org-edit-src-code)
   ('normal 'org-src-mode-map
-    "SPC '" #'org-edit-src-exit
-    "SPC k" #'org-edit-src-abort)
+           "SPC '" #'org-edit-src-exit
+           "SPC k" #'org-edit-src-abort)
   ('org-mode-map
-    "C-c C-d" #'+org-toggle-todo-and-fold)
+   "C-c C-d" #'+org-toggle-todo-and-fold)
   :config
-    (defvar org-directory (expand user-notes-dir))
-    (defvar org-notes (expand user-notes-dir))
+  (setq org-agenda-custom-commands
+        '(("c" "Calendar" agenda ""
+             ((org-agenda-span 7)
+              (org-agenda-start-on-weekday 0)
+              (org-agenda-time-grid nil)
+              (org-agenda-repeating-timestamp-show-all t)
+              (org-agenda-entry-types '(:timestamp :sexp))))
 
-    (require '+org)
+          ("d" "Upcoming deadlines" agenda ""
+             ((org-agenda-time-grid nil)
+              (org-deadline-warning-days 365)
+              (org-agenda-entry-types '(:deadline))))
 
-    (setq org-tab-first-hook #'+org-cycle-only-current-subtree-h)
+          ("o" "Today" tags-todo "@dev"
+             ((org-agenda-overriding-header "Development")
+              (org-agenda-skip-function #'my-org-agenda-skip-all-siblings-but-first)))
 
-    ;; display images
-    (setq org-display-remote-inline-images t
-          org-startup-with-inline-images t
-          org-cycle-inline-images-display t)
+          ("g" . "GTD contexts")
+            ("gd" "Dev" tags-todo "development")
+            ("gs" "Computer" tags-todo "studies")
+            ("gp" "Projects" tags-todo "projects")))
 
-    ;; better default
-    (setq org-catch-invisible-edits nil
-          org-hide-emphasis-markers t
-          org-return-follows-link t
-          org-enforce-todo-dependencies t)
+  (setq org-refile-targets '(("~/notes/gtd.org" :maxlevel . 3)
+                             ("~/notes/someday.org" :level . 1)
+                             ("~/notes/tickler.org" :maxlevel . 2)))
 
-    ;; indent
-    (setq org-startup-folded t
-          org-startup-indented t
-          org-list-indent-offset 2
-          org-pretty-entities t
-          org-return-follows-link t
-          org-cycle-separator-lines 2)
+  (setq org-agenda-files `(,(expand "agenda.org" org-directory)
+                           "~/notes/gtd.org"
+                           "~/notes/someday.org"
+                           "~/notes/tickler.org"))
 
-    (add-hook 'kill-emacs-hook #'ju/org--clock-out)
 
-    ;; Save Org buffers after refiling!
-    ;; Removed: fill `recentf' list
-    ;; (advice-add 'org-refile :after 'org-save-all-org-buffers)
+  (defvar org-directory (expand user-notes-dir))
+  (defvar org-notes (expand user-notes-dir))
 
-    (setq org-tag-alist
-          '((:startgroup)
-            (:endgroup)
-            ("@errand" . ?E)
-            ("@home" . ?H)
-            ("@work" . ?W)
-            ("agenda" . ?a)
-            ("planning" . ?p)
-            ("blog" . ?b)
-            ("emacs" . ?e)
-            ("note" . ?n)
-            ("idea" . ?i)))
+  (require '+org)
 
-    (setq org-todo-keywords
-          (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
-                  (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)")))
-          org-todo-keyword-faces
-          '(("TODO" :foreground "red" :weight bold)
-            ("NEXT" :foreground "blue" :weight bold)
-            ("DONE" :foreground "forest green" :weight bold)
-            ("WAITING" :foreground "orange" :weight bold)
-            ("HOLD" :foreground "magenta" :weight bold)
-            ("CANCELLED" :foreground "forest green" :weight bold)
-            ("MEETING" :foreground "forest green" :weight bold)
-            ("PHONE" :foreground "forest green" :weight bold)))
+  (setq org-tab-first-hook #'+org-cycle-only-current-subtree-h)
 
-    :preface
-    (defun ju.org-toggle-todo-and-fold ()
-      (interactive)
+  ;; display images
+  (setq org-display-remote-inline-images t
+        org-startup-with-inline-images t
+        org-cycle-inline-images-display t)
+
+  ;; better default
+  (setq org-catch-invisible-edits nil
+        org-hide-emphasis-markers t
+        org-return-follows-link t
+        org-enforce-todo-dependencies t)
+
+  ;; indent
+  (setq org-startup-folded t
+        org-startup-indented t
+        org-list-indent-offset 2
+        org-pretty-entities t
+        org-return-follows-link t
+        org-cycle-separator-lines 2)
+
+  (add-hook 'kill-emacs-hook #'ju/org--clock-out)
+
+  ;; Save Org buffers after refiling!
+  ;; Removed: fill `recentf' list
+  ;; (advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+(add-to-list 'org-modules 'org-timer)
+(setq org-timer-default-timer 25)
+(add-hook 'org-clock-in-hook (lambda ()
+      (if (not org-timer-current-timer)
+      (org-timer-set-timer '(16)))))
+
+  (gsetq org-tag-alist
+         '((:startgroup)
+           (:endgroup)
+           ("@errand" . ?E)
+           ("@home" . ?H)
+           ("@work" . ?W)
+           ("agenda" . ?a)
+           ("event" . ?e)
+           ("planning" . ?p)
+           ("blog" . ?b)
+           ("idea" . ?i)))
+
+  (gsetq org-todo-keywords
+         '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+           (sequence "EVENT(e)" "|" "TRYST(y)")
+           (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)"))
+         org-todo-keyword-faces
+         '(("TODO" :foreground "#f9667a" :weight bold)
+           ("NEXT" :foreground "#86b2d3" :weight bold)
+           ("DONE" :foreground "#4b93ab" :weight bold)
+           ("EVENT" :foreground "#bab4fe" :weight bold)
+           ("WAITING" :foreground "#f9b37f" :weight bold)
+           ("HOLD" :foreground "#bab4fe" :weight bold)
+           ("CANCELLED" :foreground "#a3bbae" :weight bold)
+           ("MEETING" :foreground "#a3bbae" :weight bold)
+           ("PHONE" :foreground "#a3bbae" :weight bold)))
+
+  :preface
+  (defun ju.org-toggle-todo-and-fold ()
+    (interactive)
+    (save-excursion
+      (org-back-to-heading t) ;; Make sure command works even if point is
+      ;; below target heading
+      (cond ((looking-at "\*+ TODO")
+             (org-todo "DONE")
+             (outline-hide-subtree))
+            ((looking-at "\*+ DONE")
+             (org-todo "TODO")
+             (outline-hide-subtree))
+            (t (message "Can only toggle between TODO and DONE.")))))
+
+  (defun ju/org--clock-out()
+    (org-clock-out nil t))
+
+  (defun my-org-agenda-skip-all-siblings-but-first ()
+    "Skip all but the first non-done entry."
+    (let (should-skip-entry)
+      (unless (org-current-is-todo)
+        (setq should-skip-entry t))
       (save-excursion
-        (org-back-to-heading t) ;; Make sure command works even if point is
-        ;; below target heading
-        (cond ((looking-at "\*+ TODO")
-               (org-todo "DONE")
-               (outline-hide-subtree))
-              ((looking-at "\*+ DONE")
-               (org-todo "TODO")
-               (outline-hide-subtree))
-              (t (message "Can only toggle between TODO and DONE.")))))
-    (defun ju/org--clock-out() (org-clock-out nil t)))
+        (while (and (not should-skip-entry) (org-goto-sibling t))
+          (when (org-current-is-todo)
+            (setq should-skip-entry t))))
+      (when should-skip-entry
+        (or (outline-next-heading)
+            (goto-char (point-max))))))
+
+  (defun org-current-is-todo ()
+    (string= "TODO" (org-get-todo-state))))
 
 ;;
 
+(use-package org-noter)
+(use-package org-drill)
 (use-package org-appear
-  :hook (org-mode . org-appear-mode))
+  :hook (org-mode-hook . org-appear-mode))
+  (defvar emacs-assets-dir (expand "assets/" emacs-dir))
+
+(use-package org-pomodoro
+  :commands (org-pomodoro-start org-pomodoro)
+  :config
+  ;; Run timer again after finishing
+  (add-hook 'org-pomodoro-break-finished-hook #'(lambda () (run-with-timer 5 nil #'org-pomodoro-start)))
+  ;; Send visual notification when a timer ends
+  (setq
+   alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
+  (gsetq org-pomodoro-format "%s"
+         org-pomodoro-length 0.1
+         org-pomodoro-start-sound (expand "bells.wav" emacs-assets-dir)
+         org-pomodoro-finished-sound (expand "bells.wav" emacs-assets-dir)
+         org-pomodoro-overtime-sound (expand "bells.wav" emacs-assets-dir)
+         org-pomodoro-long-break-sound (expand "singing-bowl.wav" emacs-assets-dir)
+         org-pomodoro-short-break-sound (expand "singing-bowl.wav" emacs-assets-dir))
+  org-pomodoro-clock-break t)
 
 (use-package org-journal
   :general
@@ -115,16 +201,7 @@
   (org-ellipsis " ⋯")
   (org-superstar-special-todo-items t)
   (org-superstar-headline-bullets-list '("" "•" "•" "•" "•" "•")) ;;  use char `⁖' if first symbol don't work
-  (org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?▹) (?- . ?◦))) ; changes +/- symbols in item lists
-
-  (org-superstar-todo-bullet-alist
-   ;; Enable custom bullets for TODO items
-   '(("TODO:" . ?☐)
-     ("NEXT:" . ?✒)
-     ("HOLD:" . ?✰)
-     ("WAITING:" . ?☕)
-     ("CANCELLED:" . ?✘)
-     ("DONE:" . ?✔))))
+  (org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?▹) (?- . ?◦)))) ; changes +/- symbols in item lists
 
 (use-package toc-org
   :ghook 'org-mode-hook 'markdown-mode-hook
@@ -150,16 +227,16 @@
         '(("d" "default" plain "%?"
            :immediate-finish t
            :if-new (file+head "${slug}.org"
-                              "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
+                    "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
            :unnarrowed t)
           ("t" "temp" plain "%?"
            :if-new(file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                             "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
+                   "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
            :immediate-finish t
            :unnarrowed t)
           ("p" "private" plain "%?"
            :if-new (file+head "${slug}-private.org"
-                              "#+TITLE: ${title}\n")
+                    "#+TITLE: ${title}\n")
            :immediate-finish t
            :unnarrowed t)))
 
@@ -194,24 +271,30 @@
 
 (setq org-capture-templates
       '((?n "Notes" entry
-            (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
+         (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
         (?m "Meeting notes" entry
-            (file "~/sync/notes/meetings.org") "* TODO %^{Title} %t\n- %?")
+         (file "~/sync/notes/meetings.org") "* TODO %^{Title} %t\n- %?")
         (?t "TODO" entry
-            (file "~/sync/notes/inbox.org") "* TODO %^{Title}")
+         (file "~/sync/notes/inbox.org") "* TODO %^{Title}")
         (?e "Event" entry
-            (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
+         (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
         (?w "Work TODO" entry
-            (file "~/sync/notes/work.org") "* TODO %^{Title}")))
+         (file "~/sync/notes/work.org") "* TODO %^{Title}")))
 ;;
 
 ;; Calendar
 (with-eval-after-load 'evil-mode
   (evil-set-initial-state 'calendar-mode 'normal))
 
+(general-def 'org-read-date-minibuffer-local-map
+  "J" (general-simulate-key "S-<down>")
+  "K" (general-simulate-key "S-<up>")
+  "L" (general-simulate-key "S-<right>")
+  "H" (general-simulate-key "S-<left>"))
+
 (general-def 'normal 'calendar-mode-map
-  "h" 'calendar-backward-day
   "b" 'calendar-backward-day
+  "h" 'calendar-backward-day
   "j" 'calendar-forward-week
   "k" 'calendar-backward-week
   "l" 'calendar-forward-day
@@ -229,6 +312,7 @@
   "SPC" 'scroll-other-window
   "S-SPC" 'scroll-other-window-down
   "<delete>" 'scroll-other-window-down
+  "RET" 'org-calendar-select
   "<" 'calendar-scroll-right
   ">" 'calendar-scroll-left
   "C-b" 'calendar-scroll-right-three-months
@@ -280,9 +364,7 @@
   "M-=" 'calendar-count-days-region
 
   ;; quit
-  "q" 'calendar-exit
-  "ZQ" 'evil-quit
-  "ZZ" 'calendar-exit)
+  "q" 'calendar-exit)
 
 (provide 'notes)
 ;;; notes.el ends here
