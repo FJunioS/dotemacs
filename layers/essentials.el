@@ -6,6 +6,7 @@
 (require 'core-packages)
 (require '+evil)
 (require 'general)
+
 (use-package keychain-environment)
 
 (use-package dashboard
@@ -48,9 +49,9 @@
 
   :preface
   (defun ju/dashboard-mode-hook--visual-adjustments nil
-    (gsetq visual-fill-column-width 70)
+    (hl-line-mode)
     (visual-fill-column-mode)
-    (hl-line-mode)))
+    (gsetq-local visual-fill-column-width 70)))
 
 (use-package savehist
   :defer 0
