@@ -1,32 +1,11 @@
-;;; popup-handler.el ---  desc  -*- lexical-binding: t; -*-
+;;; core-window.el ---  desc  -*- lexical-binding: t; -*-
 ;;; Commentary:
+;; This code is a adaption from Noct (general.el creator)
 ;;; Code:
-(require 'core-packages)
 
-(use-package on
-  :elpaca (:host github :repo "ajgrf/on.el")
-  :demand t)
-
-(defvar noct-elisp-scratch-hook nil
-  "Hook run when scratch buffer switches from fundamental to emacs-lisp mode.
-Can't use `after-change-major-mode-hook' hook since that triggers during init.")
-
-;; TODO remove other after one is called
-(defmacro noct-after-buffer (&rest body)
-  "Run BODY once after switching buffers or when finding a file.
-Doom uses a lot. Additionally run once in `noct-elisp-scratch-hook', so
-BODY run if I switch the scratch buffer to elisp."
-  (declare (indent defun))
-  `(let ((fun (lambda (&rest _)
-                ,@body)))
-     (general-add-hook '(on-switch-buffer-hook
-                         noct-elisp-scratch-hook) fun nil nil t)
-     (general-add-advice 'after-find-file :before fun nil t)))
-
-
-(defmacro noct-match-major-mode (mode)
-  "Create a function that returns whether the current `major-mode' is MODE."
-  (let ((name (intern (format "noct-match-%s" mode))))
+(defmacro core-match-major-mode (mode)
+  "Create a function that return whether the current `major-mode' is MODE."
+  (let ((name (intern (format "core-match-%s" mode))))
     `(progn
        (defun ,name (buffer-or-name _action)
          (ignore-errors
@@ -34,7 +13,7 @@ BODY run if I switch the scratch buffer to elisp."
              (eq ',mode (buffer-local-value 'major-mode buffer)))))
        #',name)))
 
-(defun noct-display-and-select-buffer (func buffer alist)
+(defun core-display-and-select-buffer (func buffer alist)
   "Call FUNC with BUFFER and ALIST.
 Select the window afterwards if possible. This is modified from
 `shackle--display-buffer-reuse'. Additionally set the window to be fixed size."
@@ -46,27 +25,27 @@ Select the window afterwards if possible. This is modified from
     ;;   (setq window-size-fixed t))
     window))
 
-(defun noct-display-buffer-reuse-window (buffer alist)
+(defun core-display-buffer-reuse-window (buffer alist)
   "Call `display-buffer-reuse-window' with BUFFER and ALIST.
 Select the window afterwards if possible."
-  (noct-display-and-select-buffer #'display-buffer-reuse-window buffer alist))
+  (core-display-and-select-buffer #'display-buffer-reuse-window buffer alist))
 
-(defun noct-display-buffer-in-side-window (buffer alist)
+(defun core-display-buffer-in-side-window (buffer alist)
   "Call `display-buffer-in-side-window' with BUFFER and ALIST.
 Select the window afterwards if possible."
-  (noct-display-and-select-buffer #'display-buffer-in-side-window buffer alist))
+  (core-display-and-select-buffer #'display-buffer-in-side-window buffer alist))
 
-(defun noct-display-buffer-in-side-window-no-header (buffer alist)
-  "`noct-display-buffer-in-side-window' but don't have a header line.
+(defun core-display-buffer-in-side-window-no-header (buffer alist)
+  "`core-display-buffer-in-side-window' but don't have a header line.
 Having a header line in some buffers will cause text to be cut off at the
 bottom (e.g. transient and frog menu)."
-  (noct-display-buffer-in-side-window buffer alist)
+  (core-display-buffer-in-side-window buffer alist)
   (setf (buffer-local-value 'header-line-format buffer) nil))
 
-(defun noct-display-buffer-same-window (buffer alist)
+(defun core-display-buffer-same-window (buffer alist)
   "Call `display-buffer-same-window' with BUFFER and ALIST.
 Select the window afterwards if possible."
-  (noct-display-and-select-buffer #'display-buffer-same-window buffer alist))
+  (core-display-and-select-buffer #'display-buffer-same-window buffer alist))
 
 (defun shackle--split-some-window (frame alist)
   "Return a window if splitting any window was successful.
@@ -89,67 +68,67 @@ available window if possible."
                   (shackle--split-some-window (selected-frame) alist))))
     (window--display-buffer buffer window 'window alist)))
 
-(defun noct-display-buffer-creating-other-window (buffer alist)
+(defun core-display-buffer-creating-other-window (buffer alist)
   "Call `display-buffer-in-other-window' with BUFFER and ALIST.
 If another window does not exist, create it. Select the window afterwards if
 possible."
-  (noct-display-and-select-buffer #'shackle--display-buffer-popup-window
+  (core-display-and-select-buffer #'shackle--display-buffer-popup-window
                                   buffer alist))
 
-(defmacro noct-handle-window (condition &rest body)
+(defmacro core-handle-window (condition &rest body)
   "Display windows matching CONDITION with the settings in BODY."
   (declare (indent 1) (debug t))
   (let ((condition (if (and (symbolp condition)
                             (string-match "-mode$" (symbol-name condition)))
-                       `(noct-match-major-mode ,condition)
+                       `(core-match-major-mode ,condition)
                      condition)))
     `(cl-pushnew
       (list ,condition ,@body)
       display-buffer-alist
       :test 'equal)))
 
-(defmacro noct-handle-popup (condition &optional slot)
+(defmacro core-handle-popup (condition &optional slot)
   "Display popups matching CONDITION in a side window at the top.
 When SLOT is non-nil, display popup buffers in that SLOT in the side window."
-  `(noct-handle-window ,condition
-     '(noct-display-buffer-reuse-window noct-display-buffer-in-side-window)
+  `(core-handle-window ,condition
+     '(core-display-buffer-reuse-window core-display-buffer-in-side-window)
      '(side . bottom)
      '(slot . ,slot)
      '(window-height . 0.3)))
 
-(defmacro noct-handle-popup-no-header (condition &optional slot)
+(defmacro core-handle-popup-no-header (condition &optional slot)
   "Display popups matching CONDITION in a side window at the top.
-Remove the header line. This handles some buffers where text would be cut off
-when there is a header line. When SLOT is non-nil, display popup buffers in that
-SLOT in the side window."
-  `(noct-handle-window ,condition
-     '(noct-display-buffer-reuse-window
-       noct-display-buffer-in-side-window-no-header)
+Remove the header line, this handles some buffers where text
+would be cut off when there is a header line.  When SLOT is
+non-nil, display popup buffers in that SLOT in the side window."
+  `(core-handle-window ,condition
+     '(core-display-buffer-reuse-window
+       core-display-buffer-in-side-window-no-header)
      '(side . bottom)
      '(slot . ,slot)
      '(window-height . 0.3)))
 
-(defmacro noct-handle-popup-same-window (condition)
+(defmacro core-handle-popup-same-window (condition)
   "Display popups matching CONDITION in the current window."
-  `(noct-handle-window ,condition
-     '(noct-display-buffer-reuse-window noct-display-buffer-same-window)))
+  `(core-handle-window ,condition
+     '(core-display-buffer-reuse-window core-display-buffer-same-window)))
 
-(defmacro noct-handle-popup-other-window (condition)
+(defmacro core-handle-popup-other-window (condition)
   "Display popups matching CONDITION in the other window.
 Create another window if one doesn't exist"
-  `(noct-handle-window ,condition
-     '(noct-display-buffer-reuse-window
-       noct-display-buffer-creating-other-window)))
+  `(core-handle-window ,condition
+     '(core-display-buffer-reuse-window
+       core-display-buffer-creating-other-window)))
 
-(defmacro noct-handle-popup-other-window-no-select (condition)
+(defmacro core-handle-popup-other-window-no-select (condition)
   "Display popups matching CONDITION in the other window without selecting it.
 Create another window if one doesn't exist"
-  `(noct-handle-window ,condition
+  `(core-handle-window ,condition
      'shackle--display-buffer-popup-window))
 
-(defun noct-side-window-p ()
+(defun side-window-p ()
   "Return non-nil if the selected window is a side window."
   (window-parameter (selected-window) 'window-side))
 
-(provide 'popup-handler)
-;;; popup-handler.el ends here
+(provide 'core-window)
+;;; core-window.el ends here

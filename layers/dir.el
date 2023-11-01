@@ -1,7 +1,7 @@
 (require 'core-packages)
 
 (use-package dired
-  :straight (:type built-in)
+  :elpaca nil
   :general (leader "-" #'dired-jump)
   :config
   (defun dired--recentf-fix (orig-fun &rest args)

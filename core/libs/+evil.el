@@ -1,3 +1,5 @@
+
+
 ;;; +evil.el ---  desc  -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
@@ -55,9 +57,6 @@
   :after evil
   :config
   (global-evil-matchit-mode))
-
-(use-package evil-magit
-  :config (evil-magit-init))
 
 (use-package evil-visualstar
   :config (global-evil-visualstar-mode))

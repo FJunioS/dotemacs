@@ -17,7 +17,7 @@
   (setq yas-wrap-around-region t))
 
 (use-package corfu
-  :straight (corfu :files (:defaults "extensions/*.el"))
+  :elpaca (corfu :files (:defaults "extensions/*.el"))
   :ghook
   'prog-mode-hook
   'shell-mode-hook
@@ -33,7 +33,6 @@
                   corfu-popupinfo-delay nil)
       (corfu-mode 1)))
 
-
   (dolist (c '(minibuffer-setup-hook eshell-mode-hook))
     (add-hook c #'corfu-enable-in-minibuffer))
 
@@ -44,6 +43,7 @@
          corfu-auto-prefix 3)
 
   (def 'insert "C-k" nil)
+
   (general-def 'corfu-map
     "C-SPC" #'corfu-insert-separator
     "C-i" #'corfu-insert
@@ -52,8 +52,11 @@
     "C-l" #'corfu-complete
     "C-u" #'corfu-scroll-down
     "C-d" #'corfu-scroll-up
-    "RET" #'corfu-complete
-    "TAB" #'corfu-complete)
+    "TAB" #'corfu-complete
+    "RET" #'(lambda () (interactive)
+              (corfu-complete)
+              (general-simulate-key "RET")
+              (general-simulate-RET)))
 
   (dolist (c (list (cons "SPC" " ")
                    (cons "." ".")
@@ -132,7 +135,7 @@
           orderless-regexp)))
 
 (use-package consult
-  :straight (consult :files (:defaults "consult-*"))
+  :elpaca (consult :files (:defaults "consult-*"))
   :general
   (leader
     "SPC" #'consult-buffer)
@@ -241,7 +244,8 @@ DEFS is a plist associating completion categories to commands."
   (setq consult-async-input-debounce 0.2)
   (setq consult-find-args "find . -not ( -wholename */.* -prune -o -name node_modules -prune )"))
 
-(use-package consult-gh) ; Consult Github
+(use-package consult-gh ; Consult Github
+  :elpaca (:host github :repo "armindarvish/consult-gh"))
 
 (use-package vertico-prescient
   :after vertico
@@ -297,6 +301,9 @@ DEFS is a plist associating completion categories to commands."
         vertico-scroll-margin 4
         vertico-cycle nil)
 
+  (gsetq vertico-indexed-start 1)
+  (vertico-indexed-mode)
+
   (dolist (c (list (cons "SPC" " ")
                    (cons "." ".")
                    (cons "C-1" "1")
@@ -322,6 +329,29 @@ DEFS is a plist associating completion categories to commands."
     (define-key vertico-map (kbd (car c)) `(lambda ()
                                            (interactive)
                                            (insert ,(cdr c)))))
+
+  (defmacro generate-vertico-select-index! (index)
+    "Return a named function to run `vertico-directory-enter' for INDEX."
+    `(defun! ,(intern (format "noct-vertico-enter %s" index)) ()
+                 ,(format "Call `vertico-directory-enter' for index %s." index)
+                 (interactive)
+                 (let ((vertico--index ,index))
+                   (vertico-directory-enter))))
+
+
+  (general-def vertico-map
+    "<prior>" #'vertico-scroll-down
+    "<next>" #'vertico-scroll-up
+    "1" (generate-vertico-select-index! 0)
+    "2" (generate-vertico-select-index! 1)
+    "3" (generate-vertico-select-index! 2)
+    "4" (generate-vertico-select-index! 3)
+    "5" (generate-vertico-select-index! 4)
+    "6" (generate-vertico-select-index! 5)
+    "7" (generate-vertico-select-index! 6)
+    "8" (generate-vertico-select-index! 7)
+    "9" (generate-vertico-select-index! 8)
+    "0" (generate-vertico-select-index! 9))
 
   ;; Prefix the current candidate with “» ”. From
   ;; https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow

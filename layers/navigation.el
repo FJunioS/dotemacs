@@ -31,6 +31,7 @@
   "q"        #'close-minibuffer)
 
 (global-key
+  "C-h =" #'describe-char
   "M-k" #'kill-this-buffer
   "M-o" #'evil-switch-to-windows-last-buffer)
 
@@ -61,7 +62,6 @@
 (use-package centaur-tabs
   :init
   (general-after-gui
-    (setq centaur-tabs-set-icons t)
     (centaur-tabs-mode))
   :general
   (global-key
@@ -75,7 +75,29 @@
     "n" #'centaur-tabs-backward)
   (leader
     "[" #'centaur-tabs-backward-group
-    "]" #'centaur-tabs-forward-group))
+    "]" #'centaur-tabs-forward-group)
+  :config
+  (gsetq centaur-tabs-set-icons t
+         centaur-tabs-set-bar 'left
+         centaur-tabs-down-tab-text "▾"
+         centaur-tabs-forward-tab-text "⏵"
+         centaur-tabs-backward-tab-text "⏴"
+         centaur-tabs-style "rounded"
+         centaur-tabs-height 32
+         centaur-tabs-show-new-tab-button t
+         centaur-tabs-set-modified-marker t
+         centaur-tabs-show-navigation-buttons t
+         centaur-tabs-left-edge-margin nil)
+
+  (centaur-tabs-change-fonts (face-attribute 'default :font) 110)
+  (centaur-tabs-headline-match)
+  (setq uniquify-separator "/")
+  (setq uniquify-buffer-name-style 'forward)
+  :hook
+  (dashboard-mode . centaur-tabs-local-mode)
+  (term-mode . centaur-tabs-local-mode)
+  (calendar-mode . centaur-tabs-local-mode)
+  (org-agenda-mode . centaur-tabs-local-mode))
 
 (use-package drag-stuff
   :init
@@ -87,6 +109,21 @@
    "K" #'drag-stuff-up
    "J" #'drag-stuff-down))
 
+(use-package evil-mc
+  :general
+  (general-def 'visual 'evil-mc-key-map
+           "A" #'evil-mc-make-cursor-in-visual-selection-end
+           "I" #'evil-mc-make-cursor-in-visual-selection-beg)
+  :config
+  (global-evil-mc-mode))
+
+(use-package multiple-cursors
+  :general
+  ('normal
+   "C-n" #'mc/mark-next-like-this)
+  ('visual
+   "C-n" #'mc/mark-next-like-this))
+
 (use-package mwim
   :defer t
   :general
@@ -97,24 +134,42 @@
     "C-a" #'mwim-beginning-of-code-or-line
     "C-e" #'mwim-end-of-code-or-line))
 
-(with-eval-after-load 'cycle-buffer
-  (nvimap
-    "M-n" #'cycle-buffer
-    "M-p" #'cycle-buffer-backward))
+(use-package emms
+  :config
+  (emms-standard) ;; or (emms-devel) if you want all features
+  (setq emms-source-file-default-directory "~/Music"
+        emms-info-asynchronously t
+        emms-show-format "♪ %s")
+  (if (executable-find "mplayer")
+      (setq emms-player-list '(emms-player-mplayer))
+    (emms-default-players))
+  (global-key "M-7" #'emms-smart-browse))
 
+(use-package hl-todo
+  :config
+  (global-hl-todo-mode))
+
+(defun format-paragraph()
+  (interactive)
+  ;; TODO: replace this with proper evil command to format paragraph
+  (general-simulate-key "=ap")
+  (save-excursion
+    (general-simulate-=ap)))
+(nmap "=" (general-key-dispatch 'evil-indent
+            "=" #'format-paragraph))
 
 ;; ** Yank/Kill hotfix
-(defun kill-and-paste()
-  (interactive)
-  (kill-region (region-beginning) (region-end))
-  (insert (current-kill 0 t)))
-
 (defvar delete-and-paste-args "")
 
 (defun yank-and-register()
   (interactive)
   (call-interactively #'evil-yank)
   (setq delete-and-paste-args (current-kill 0 t)))
+
+(defun kill-and-paste()
+  (interactive)
+  (kill-region (region-beginning) (region-end))
+  (insert (current-kill 0 t)))
 
 (defun delete-and-paste()
   (interactive)
@@ -380,7 +435,7 @@ bracket and a matching right bracket.
   "C-<tab>" #'xah-goto-matching-bracket)
 
 (use-package calc-mode
-  :straight (:type built-in)
+  :elpaca nil
   :config
   (general-def 'normal 'calc-mode-map
     "0" 'calcDigit-start
@@ -506,7 +561,7 @@ bracket and a matching right bracket.
     "zz" (lookup-key calc-mode-map (kbd "z"))))
 
 (use-package info
-  :straight (:type built-in)
+  :elpaca nil
   :config
   (general-def 'normal 'Info-mode-map
     "<tab>" 'Info-next-reference
@@ -570,7 +625,7 @@ bracket and a matching right bracket.
 
 
 (use-package imenu
-  :straight (:type built-in)
+  :elpaca nil
   :config
   (general-with 'evil
     (evil-add-command-properties 'imenu :jump t)
@@ -583,7 +638,7 @@ bracket and a matching right bracket.
     "q" 'imenu-list-quit-window))
 
 (use-package ibuffer
-  :straight (:type built-in)
+  :elpaca nil
   :config
   (general-def 'normal 'ibuffer-mode-map
     "=" 'ibuffer-diff-with-file

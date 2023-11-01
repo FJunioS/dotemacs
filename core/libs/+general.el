@@ -2,23 +2,37 @@
 ;;; Commentary:
 ;;; Code:
 
-    (general-create-definer nmap :states 'normal)
-    (general-create-definer vmap :states 'visual)
-    (general-create-definer imap :states 'insert)
-    (general-create-definer mmap :states 'motion)
-    (general-create-definer nvmap :states '(normal visual))
-    (general-create-definer nvimap :states '(normal visual insert))
-    (general-create-definer global-key :states '(normal visual insert emacs) :keymaps 'global-map)
+(defvar leader-key "SPC")
+(defvar non-normal-leader-key "C-c")
+(general-auto-unbind-keys)
+(general-create-definer leader
+  :states '(normal visual emacs)
+  :prefix leader-key
+  :non-normal-prefix non-normal-leader-key)
 
-    (defmacro create-gen (key prefix)
-      `(general-create-definer
-         ;; Create procedures like `leader/file' or `leader/agenda'
-         ;;to better handle custom commands with General
-         ,(intern (replace-regexp-in-string "\'" "" (format "leader/%s" prefix)))
-         :states '(normal visual)
-         ;; Only needed if using evil-mode
-         :prefix ,(format "%s %s" leader-key key)
-         ))
+(defalias 'def #'general-def)
+(defalias 'kbd! #'general-simulate-key)
+(defalias 'gsetq #'general-setq)
+(defalias 'gsetq-default #'general-setq-default)
+(defalias 'gsetq-local #'general-setq-local)
+
+(general-create-definer nmap :states 'normal)
+(general-create-definer vmap :states 'visual)
+(general-create-definer imap :states 'insert)
+(general-create-definer mmap :states 'motion)
+(general-create-definer nvmap :states '(normal visual))
+(general-create-definer nvimap :states '(normal visual insert))
+(general-create-definer global-key :states '(normal visual insert emacs) :keymaps 'global-map)
+
+(defmacro create-gen (key prefix)
+  `(general-create-definer
+     ;; Create procedures like `leader/file' or `leader/agenda'
+     ;;to better handle custom commands with General
+     ,(intern (replace-regexp-in-string "\'" "" (format "leader/%s" prefix)))
+     :states '(normal visual)
+     ;; Only needed if using evil-mode
+     :prefix ,(format "%s %s" leader-key key)
+     ))
 
 (defun define-leader-commands-from-list (command-list)
   "Get `custom-command-list' and create procedures and define maps on top of it."

@@ -9,14 +9,38 @@
 
 (use-package keychain-environment)
 
+(use-package circe
+  :config
+(setq circe-network-options
+      '(("Libera Chat"
+         :tls t
+         :nick "Juniju"
+         :channels ("#emacs-circe" "#emacs")
+         ))))
+
+;; http://yummymelon.com/devnull/customizing-the-emacs-tools-menu.html
+(easy-menu-add-item global-map '(menu-bar tools)
+                    ["Magit Status"
+                     magit-status
+                     :visible (vc-responsible-backend default-directory)
+                     :help "Show the status of the current Git repository in a buffer"]
+                     "Version Control")
+
+
 (use-package dashboard
   :ensure t
-  :straight (:build t)
+  :demand t
   :defer 0
   :general
-  ('leader-open-map
+  (leader/open
    "d" #'(dashboard-open :wk "Dashboard"))
-  ('normal dashboard-mode-map
+  (general-def 'normal 'dashboard-mode-map
+    ;; Widgets
+    "r" (general-simulate-key "r") ; recent
+    "m" (general-simulate-key "m") ; bookmarks
+    "p" (general-simulate-key "p") ; projects
+    "a" (general-simulate-key "a") ; agenda
+    "e" (general-simulate-key "e") ; registers
     ;; Movement
     "j" 'widget-forward
     "k" 'widget-backward
@@ -27,18 +51,8 @@
 
     ;; Other commands
     [down-mouse-1] 'widget-button-click)
-
   :config
-  (general-def 'normal dashboard-mode-map
-    ;; Widgets
-    "r" (symbol-function (lookup-key dashboard-mode-map "r"))  ; recent
-    "m" (symbol-function (lookup-key dashboard-mode-map "m"))  ; bookmarks
-    "p" (symbol-function (lookup-key dashboard-mode-map "p"))  ; projects
-    "a" (symbol-function (lookup-key dashboard-mode-map "a"))  ; agenda
-    "e" (symbol-function (lookup-key dashboard-mode-map "e"))) ; registers
-
   (add-hook 'dashboard-mode-hook #'ju/dashboard-mode-hook--visual-adjustments)
-  (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
   (setq dashboard-center-content t)
   (setq dashboard-items '((recents   . 5)
                           (bookmarks . 5)
@@ -46,7 +60,7 @@
                           (agenda    . 5)))
 
   (dashboard-setup-startup-hook)
-
+  (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
   :preface
   (defun ju/dashboard-mode-hook--visual-adjustments nil
     (hl-line-mode)
@@ -55,6 +69,7 @@
 
 (use-package savehist
   :defer 0
+  :elpaca nil
   :config
   (savehist-mode 1)
   (save-place-mode 1)
@@ -73,7 +88,7 @@
           search-ring
           regexp-search-ring
           extended-command-history)
-        savehist-file (make-temp-name (concat cache-dir "savehist-"))
+        savehist-file (concat cache-dir "savehist-backup")
         savehist-save-minibuffer-history t)
 
   (setq auto-save-default t
@@ -107,7 +122,7 @@
   (vimish-fold-global-mode))
 
 (use-package apropos
-  :straight (:type built-in)
+  :elpaca nil
   :init
   ;; TODO can this be put in :config?
   (noct-handle-popup apropos-mode)
@@ -146,7 +161,8 @@
   (general-add-hook 'focus-out-hook #'gcmh-idle-garbage-collect))
 
 (use-package recentf
-  :ghook ('pre-command-hook nil nil nil t)
+  :elpaca nil
+  :ghook 'elpaca-after-init-hook
   :init (recentf-mode)
   :general
   ("C-x C-r" #'recentf)
@@ -154,7 +170,8 @@
     "r" #'recentf)
   :config
   (setq recentf-max-saved-items 1000)
-  (setq recentf-exclude '("^/var/folders\\.*" "COMMIT_EDITMSG\\'" ".*-autoloads\\.el\\'" "[/\\]\\.elpa/"))
+  (setq recentf-exclude '("^/tmp/emacs/.*" "^/var/folders\\.*" "COMMIT_EDITMSG\\'"
+                           ".*-autoloads\\.el\\'" "[/\\]\\.elpa/"))
   (add-hook! 'kill-emacs-hook #'recentf-save-list))
 
 (use-package clipetty
@@ -188,7 +205,7 @@
   (which-key-mode))
 
 (use-package ibuffer
-  :straight (:type built-in)
+  :elpaca nil
   :init
   (require '+ibuffer)
   :general

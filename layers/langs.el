@@ -9,12 +9,16 @@
 (add-hook 'prog-mode-hook #'column-number-mode)
 (electric-pair-mode 1)
 
+(use-package eat)
+
 (use-package eldoc
+  :ghook 'elpaca-after-init-hook
   :config
   (setq eldoc-idle-delay 0.02
         eldoc-current-idle-delay 0.01))
 
-(use-package eldoc-box)
+(use-package eldoc-box
+  :after eldoc)
 
 (use-package flycheck
   :init

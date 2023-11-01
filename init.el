@@ -36,7 +36,7 @@
 (require 'subr-x)
 (require 'cl-lib)
 
-(dolist (path '("core" "core/libs" "layers"))
+(dolist (path '("core/libs" "layers"))
   (add-to-list 'load-path (locate-user-emacs-file path)))
 
 (defgroup ju nil
@@ -49,7 +49,7 @@
   :group 'ju
   :prefix "ju-core-")
 
-(define-widget 'ju-alist 'lazy
+ (define-widget 'ju-alist 'lazy
   "Ju's alist type."
   :type '(alist :key-type (or symbol (repeat symbol))
                 :value-type symbol))
@@ -100,9 +100,7 @@ tell you about it. Very annoying. This prevents that."
   "Enable messaging after init and it doesn't populate message
   buffer with loading notification"
   (run-with-timer
-   1 nil
-   (lambda ()
-     (setq inhibit-message nil))))
+   1 nil (lambda () (setq inhibit-message nil))))
 
 (put 'set-goal-column 'disabled nil)
 
@@ -188,7 +186,6 @@ tell you about it. Very annoying. This prevents that."
 (setq show-paren-style 'mixed)
 (undelete-frame-mode) ; Emacs 29
 
-
 (setq-default indent-tabs-mode nil
               tab-width 4)
 (setq-hook! 'emacs-lisp-mode-hook
@@ -214,7 +211,7 @@ tell you about it. Very annoying. This prevents that."
 (setq idle-update-delay 1)
 
 (setq debug-on-error t)
-(setq inhibit-message nil)
+(setq inhibit-message t)
 (require 'core-compilation nil t)
 (require 'core-packages nil t)
 
@@ -236,7 +233,7 @@ tell you about it. Very annoying. This prevents that."
   (require mod nil t))
 
 (setq debug-on-error init-file-debug)
-(setq inhibit-message (not init-file-debug))
+(setq inhibit-message nil)
 
 (require 'server)
 (unless (server-running-p)

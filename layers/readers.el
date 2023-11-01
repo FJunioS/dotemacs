@@ -2,7 +2,7 @@
 
 
 (use-package pdf-tools
-  :straight (:build t)
+  :elpaca (:build t)
   :demand t
   :preface
   (defun core:pdf-view-page-as-text ()

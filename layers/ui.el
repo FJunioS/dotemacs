@@ -4,6 +4,20 @@
 (require 'core-lib)
 (require 'core-packages)
 
+(use-package mini-echo
+  :elpaca (:host github :repo "liuyinz/mini-echo.el")
+  :config
+  (general-after-gui
+    (mini-echo-mode))
+
+  (gsetq mini-echo-separator " | "
+         mini-echo-right-padding 1)
+
+  (mini-echo-define-segment "time"
+    "Return current time info."
+    :setup (display-time-mode 1)
+    :fetch (propertize display-time-string 'face 'mini-echo-time)))
+
 ;; ** Font
 (general-after-gui
   (when (member "Iosevka Custom" (font-family-list))
@@ -16,9 +30,7 @@
     (hes-mode)))
 
 (use-package maple-minibuffer
-  :straight (maple-minibuffer
-             :host github
-             :repo "honmaple/emacs-maple-minibuffer")
+  :elpaca (:host github :repo "honmaple/emacs-maple-minibuffer")
   :config
   (setq maple-minibuffer:position-type 'frame-bottom-center
         maple-minibuffer:border-color
@@ -50,14 +62,14 @@
   :config
   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
-(add-function :after after-focus-change-function
-              #'my-change-background)
+;; (add-function :after after-focus-change-function
+;;               #'my-change-background)
 
-(defun my-change-background ()
-  (dolist (frame (frame-list))
-    (pcase (frame-focus-state frame)
-      (`t (set-face-background 'default "#131416" frame))
-      (`nil (set-face-background 'default "#1f2125" frame)))))
+;; (defun my-change-background ()
+;;   (dolist (frame (frame-list))
+;;     (pcase (frame-focus-state frame)
+;;       (`t (set-face-background 'default "#131416" frame))
+;;       (`nil (set-face-background 'default "#1f2125" frame)))))
 
 (use-package modus-themes
   :defer 0
@@ -174,19 +186,19 @@
   (general-after-gui
     (set-theme)))
 
-(general-after-gui
-  (gsetq-default mode-line-format
-                 '(("%e" mode-line-front-space
-                    (:propertize
-                     ("" mode-line-mule-info mode-line-client mode-line-modified mode-line-remote)
-                     display
-                     (min-width
-                      (5.0)))
-                    mode-line-frame-identification
-                    mode-line-buffer-identification
-                    "   " mode-line-position
-                    (vc-mode vc-mode)
-                    "  " mode-line-misc-info flymake-mode-line-format " | "  mode-name))))
+;; (general-after-gui
+;;   (gsetq-default mode-line-format
+;;                  '(("%e" mode-line-front-space
+;;                     (:propertize
+;;                      ("" mode-line-mule-info mode-line-client mode-line-modified mode-line-remote)
+;;                      display
+;;                      (min-width
+;;                       (5.0)))
+;;                     mode-line-frame-identification
+;;                     mode-line-buffer-identification
+;;                     "   " mode-line-position
+;;                     (vc-mode vc-mode)
+;;                     "  " mode-line-misc-info flymake-mode-line-format " | "  mode-name))))
 
 (provide 'ui)
 ;;; ui.el ends here

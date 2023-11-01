@@ -6,7 +6,7 @@
 (require 'core-packages)
 (require 'core-lib)
 (use-package org
-  :straight '(org :type built-in)
+  :elpaca '(org :type built-in)
   :general
   ("C-c a" #'org-agenda)
   (leader/agenda
@@ -25,40 +25,8 @@
   ('org-mode-map
    "C-c C-d" #'+org-toggle-todo-and-fold)
   :config
-  (setq org-agenda-custom-commands
-        '(("c" "Calendar" agenda ""
-             ((org-agenda-span 7)
-              (org-agenda-start-on-weekday 0)
-              (org-agenda-time-grid nil)
-              (org-agenda-repeating-timestamp-show-all t)
-              (org-agenda-entry-types '(:timestamp :sexp))))
-
-          ("d" "Upcoming deadlines" agenda ""
-             ((org-agenda-time-grid nil)
-              (org-deadline-warning-days 365)
-              (org-agenda-entry-types '(:deadline))))
-
-          ("o" "Today" tags-todo "@dev"
-             ((org-agenda-overriding-header "Development")
-              (org-agenda-skip-function #'my-org-agenda-skip-all-siblings-but-first)))
-
-          ("g" . "GTD contexts")
-            ("gd" "Dev" tags-todo "development")
-            ("gs" "Computer" tags-todo "studies")
-            ("gp" "Projects" tags-todo "projects")))
-
-  (setq org-refile-targets '(("~/notes/gtd.org" :maxlevel . 3)
-                             ("~/notes/someday.org" :level . 1)
-                             ("~/notes/tickler.org" :maxlevel . 2)))
-
-  (setq org-agenda-files `(,(expand "agenda.org" org-directory)
-                           "~/notes/gtd.org"
-                           "~/notes/someday.org"
-                           "~/notes/tickler.org"))
-
-
-  (defvar org-directory (expand user-notes-dir))
-  (defvar org-notes (expand user-notes-dir))
+  (setq org-directory (expand user-notes-dir)
+        org-default-notes-file (expand "todo.org" user-notes-dir))
 
   (require '+org)
 
@@ -83,17 +51,41 @@
         org-return-follows-link t
         org-cycle-separator-lines 2)
 
-  (add-hook 'kill-emacs-hook #'ju/org--clock-out)
+  ;; Agenda
+  (setq org-agenda-custom-commands
+        '(("c" "Calendar" agenda ""
+             ((org-agenda-span 7)
+              (org-agenda-start-on-weekday 0)
+              (org-agenda-time-grid nil)
+              (org-agenda-repeating-timestamp-show-all t)
+              (org-agenda-entry-types '(:timestamp :sexp))))
+
+          ("d" "Upcoming deadlines" agenda ""
+             ((org-agenda-time-grid nil)
+              (org-deadline-warning-days 365)
+              (org-agenda-entry-types '(:deadline))))
+
+          ("o" "Today" tags-todo "@dev"
+             ((org-agenda-overriding-header "Development")
+              (org-agenda-skip-function #'my-org-agenda-skip-all-siblings-but-first)))
+
+          ("g" . "GTD contexts")
+            ("gd" "Dev" tags-todo "development")
+            ("gs" "Computer" tags-todo "studies")
+            ("gp" "Projects" tags-todo "projects")))
+
+  (setq org-refile-targets '(("~/notes/todo.org" :maxlevel . 3)
+                             ("~/notes/someday.org" :level . 1)
+                             ("~/notes/tickler.org" :maxlevel . 2)))
+
+  (setq org-agenda-files `(,(expand "agenda.org" org-directory)
+                           "~/notes/todo.org"
+                           "~/notes/someday.org"
+                           "~/notes/tickler.org"))
 
   ;; Save Org buffers after refiling!
   ;; Removed: fill `recentf' list
   ;; (advice-add 'org-refile :after 'org-save-all-org-buffers)
-
-(add-to-list 'org-modules 'org-timer)
-(setq org-timer-default-timer 25)
-(add-hook 'org-clock-in-hook (lambda ()
-      (if (not org-timer-current-timer)
-      (org-timer-set-timer '(16)))))
 
   (gsetq org-tag-alist
          '((:startgroup)
@@ -122,6 +114,7 @@
            ("MEETING" :foreground "#a3bbae" :weight bold)
            ("PHONE" :foreground "#a3bbae" :weight bold)))
 
+  (add-hook 'kill-emacs-hook #'ju/org--clock-out)
   :preface
   (defun ju.org-toggle-todo-and-fold ()
     (interactive)
@@ -161,7 +154,7 @@
 (use-package org-drill)
 (use-package org-appear
   :hook (org-mode-hook . org-appear-mode))
-  (defvar emacs-assets-dir (expand "assets/" emacs-dir))
+(defvar emacs-assets-dir (expand "assets/" emacs-dir))
 
 (use-package org-pomodoro
   :commands (org-pomodoro-start org-pomodoro)
@@ -227,16 +220,16 @@
         '(("d" "default" plain "%?"
            :immediate-finish t
            :if-new (file+head "${slug}.org"
-                    "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
+                              "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
            :unnarrowed t)
           ("t" "temp" plain "%?"
            :if-new(file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                   "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
+                             "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
            :immediate-finish t
            :unnarrowed t)
           ("p" "private" plain "%?"
            :if-new (file+head "${slug}-private.org"
-                    "#+TITLE: ${title}\n")
+                              "#+TITLE: ${title}\n")
            :immediate-finish t
            :unnarrowed t)))
 
@@ -271,15 +264,15 @@
 
 (setq org-capture-templates
       '((?n "Notes" entry
-         (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
+            (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
         (?m "Meeting notes" entry
-         (file "~/sync/notes/meetings.org") "* TODO %^{Title} %t\n- %?")
+            (file "~/sync/notes/meetings.org") "* TODO %^{Title} %t\n- %?")
         (?t "TODO" entry
-         (file "~/sync/notes/inbox.org") "* TODO %^{Title}")
+            (file "~/sync/notes/inbox.org") "* TODO %^{Title}")
         (?e "Event" entry
-         (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
+            (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
         (?w "Work TODO" entry
-         (file "~/sync/notes/work.org") "* TODO %^{Title}")))
+            (file "~/sync/notes/work.org") "* TODO %^{Title}")))
 ;;
 
 ;; Calendar

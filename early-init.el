@@ -35,6 +35,13 @@
 ;;; Code:
 (require 'cl-lib)
 
+(add-to-list 'load-path (locate-user-emacs-file "core"))
+
+(require 'core-window)
+(core-handle-popup (rx "*Messages*"))
+(core-handle-popup (rx "*Warnings*"))
+(core-handle-popup (rx "*Backtrace*"))
+
 ;; Avoid wasting time loading before init files, also as we are
 ;; going to use Straight this would only delay our startup
 (setq package-enable-at-startup nil)
@@ -44,8 +51,6 @@
 ;; later on we'll fix this with `gchm.el'
 (setq gc-cons-threshold most-positive-fixnum)
   ;; Avoid loading outdated byte code
-
-(setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
 
 (setq load-prefer-newer noninteractive)
 

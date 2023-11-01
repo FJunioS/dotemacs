@@ -24,6 +24,7 @@
                     :around #'NOP-kill-new)
 
 (use-package whitespace
+  :elpaca nil
   :demand t
   :general (general-def 'leader-toggle-map "w" #'whitespace-mode)
 
@@ -108,15 +109,7 @@
              text-mode-hook) #'default-prettify-mode)
 
 (defvar org-prettify-alist
-  '(("todo:" . ? )
-    ("wait:" . ? )
-    ("nope:" . ? )
-    ("done:" . ? )
-    ("todo"  . ? )
-    ("wait"  . ? )
-    ("nope"  . ? )
-    ("done"  . ? )
-    ("[#a]"  . ? )
+  '(("[#a]"  . ? )
     ("[#b]"  . ?⬆)
     ("[#c]"  . ?■)
     ("[#d]"  . ?⬇)
