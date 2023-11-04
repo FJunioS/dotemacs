@@ -25,11 +25,11 @@
   ('org-mode-map
    "C-c C-d" #'+org-toggle-todo-and-fold)
   :config
+  (setq require-final-newline t)
   (setq org-directory (expand user-notes-dir)
         org-default-notes-file (expand "todo.org" user-notes-dir))
 
   (require '+org)
-
   (setq org-tab-first-hook #'+org-cycle-only-current-subtree-h)
 
   ;; display images
@@ -86,7 +86,6 @@
   ;; Save Org buffers after refiling!
   ;; Removed: fill `recentf' list
   ;; (advice-add 'org-refile :after 'org-save-all-org-buffers)
-
   (gsetq org-tag-alist
          '((:startgroup)
            (:endgroup)
@@ -215,7 +214,6 @@
   (setq org-roam-directory (expand user-notes-dir))
   (setq org-id-extra-files (org-roam--list-files org-roam-directory))
 
-
   (setq org-roam-capture-templates
         '(("d" "default" plain "%?"
            :immediate-finish t
@@ -252,16 +250,6 @@
   :gfhook
   ('dired-mode-hook 'org-download-enable))
 
-;; Add timestamp on capture notes
-(defun my-org-roam-update-timestamp ()
-  "Update timestamp in Org Roam buffer."
-  (interactive)
-  (when (eq major-mode 'org-mode)
-    (time-stamp)
-    (save-buffer t)))
-
-(add-hook 'kill-buffer-hook 'my-org-roam-update-timestamp)
-
 (setq org-capture-templates
       '((?n "Notes" entry
             (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
@@ -273,7 +261,6 @@
             (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
         (?w "Work TODO" entry
             (file "~/sync/notes/work.org") "* TODO %^{Title}")))
-;;
 
 ;; Calendar
 (with-eval-after-load 'evil-mode

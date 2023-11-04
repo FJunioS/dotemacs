@@ -386,6 +386,12 @@ Uses 4 pixels FHD and 8 on 4k."
   (interactive)
   (switch-to-buffer "*Messages*"))
 
+;;;###autoload
+(defmacro csetq (variable value)
+  `(funcall (or (get ',variable 'custom-set)
+                'set-default)
+            ',variable ,value))
+
 (defmacro +map (map &rest bindings)
   `(progn
      ,@(seq-map (lambda (pair)

@@ -5,7 +5,6 @@
 
 ;;
 ;;; Tools:
-
 (add-hook 'prog-mode-hook #'column-number-mode)
 (electric-pair-mode 1)
 
@@ -14,6 +13,7 @@
 (use-package eldoc
   :ghook 'elpaca-after-init-hook
   :config
+  (setq eldoc-display-functions '(eldoc-display-in-echo-area  eldoc-display-in-buffer))
   (setq eldoc-idle-delay 0.02
         eldoc-current-idle-delay 0.01))
 
@@ -52,7 +52,7 @@
   :config
   (setq projectile-auto-discover nil
          projectile-enable-caching (not noninteractive)
-         projectile-ignored-projects '("~" "~/dev" "~/sync" "~/.config"))
+         projectile-ignored-projects '("~/" "~/dev" "~/sync" "~/.config"))
   (projectile-mode +1))
 
 (use-package highlight-numbers
@@ -94,7 +94,6 @@
   :config
   (general-add-hook 'eglot-maned-mode-hook #'evil-normalize-keymaps)
   (setq completion-category-overrides '((eglot (styles orderless))))
-  (setq eldoc-display-functions '(eldoc-display-in-buffer))
   (setq eglot-ignored-server-capabilites '(:inlayHintProvider)))
 
 ;;
@@ -108,8 +107,6 @@
 
 ;; rust
 (use-package rustic
-  :gfhook
-  '(lambda () (add-hook 'eglot--managed-mode-hook (lambda () (flymake-mode -1))))
   :init
   (remove-hook 'rustic-mode-hook 'flycheck-mode)
   (setq rustic-setup-eglot t

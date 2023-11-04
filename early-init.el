@@ -50,7 +50,6 @@
 ;; changes help shave off about half a second of startup time.
 ;; later on we'll fix this with `gchm.el'
 (setq gc-cons-threshold most-positive-fixnum)
-  ;; Avoid loading outdated byte code
 
 (setq load-prefer-newer noninteractive)
 

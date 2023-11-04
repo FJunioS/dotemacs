@@ -100,9 +100,10 @@
   ;;              '(0 0 0.4)
   ;;              dirvish-default-layout))
   :general
-  (def 'dirvish-mode-map
+  (def 'normal 'dirvish-mode-map
        ;; https://github.com/alexluigit/dirvish/issues/186
        "<tab>" #'dirvish-subtree-toggle
+       "RET" #'dired-find-file
 
        "A" #'gnus-dired-attach
        "a" #'dirvish-quick-access
@@ -117,7 +118,7 @@
        "M" #'dirvish-layout-switch
        "i" #'dired-find-file
        "p" #'dired-previous-line
-       "n" (lambda () (interactive)
+       "n" #'(lambda () (interactive)
              (progn (dired-previous-line 1)
                     (dired-next-line 1)))
        "h" '(:ignore t :which-key "history")
@@ -174,13 +175,8 @@
        "* C-p" 'dired-prev-marked-file
 
        "y"   #'dirvish-yank-menu
-       "y"  '(:ignore t :which-key "yank")
-       "yp" #'dirvish-copy-file-path
-       "yn" #'dirvish-copy-file-name
-       "yd" #'dirvish-copy-file-directory
 
        "z"  #'dirvish-setup-menu)
-
   :gfhook
   ;; truncate long file names instead of wrapping
   ('dirvish-find-entry-hook

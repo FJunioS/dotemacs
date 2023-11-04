@@ -11,12 +11,12 @@
 
 (use-package circe
   :config
-(setq circe-network-options
-      '(("Libera Chat"
-         :tls t
-         :nick "Juniju"
-         :channels ("#emacs-circe" "#emacs")
-         ))))
+  (setq circe-network-options
+        '(("Libera Chat"
+           :tls t
+           :nick "Juniju"
+           :channels ("#emacs-circe" "#emacs")
+           ))))
 
 ;; http://yummymelon.com/devnull/customizing-the-emacs-tools-menu.html
 (easy-menu-add-item global-map '(menu-bar tools)
@@ -24,8 +24,7 @@
                      magit-status
                      :visible (vc-responsible-backend default-directory)
                      :help "Show the status of the current Git repository in a buffer"]
-                     "Version Control")
-
+                    "Version Control")
 
 (use-package dashboard
   :ensure t
@@ -67,38 +66,61 @@
     (visual-fill-column-mode)
     (gsetq-local visual-fill-column-width 70)))
 
-(use-package savehist
-  :defer 0
+(use-package save-place
   :elpaca nil
-  :config
-  (savehist-mode 1)
-  (save-place-mode 1)
-  (add-hook 'kill-emacs-hook #'savehist-save)
+  :ghook 'elpaca-after-init-hook
+  :custom
+  (save-place-file (concat cache-dir "saveplace")))
 
+(use-package savehist
+  :elpaca nil
+  :hook ((after-init-hook . savehist-mode)
+         (after-init-hook . save-place-mode))
+  :custom
+  (savehist-file (concat cache-dir "savehist-backup"))
+  :config
   (add-function :after after-focus-change-function
                 #'savehist-save)
 
-  (setq savehist-additional-variables
-        '(mark-ring
-          global-mark-ring
-          compile-command
-          compile-history
-          compilation-directory
-          shell-command-history
-          search-ring
-          regexp-search-ring
-          extended-command-history)
-        savehist-file (concat cache-dir "savehist-backup")
-        savehist-save-minibuffer-history t)
+  (gsetq history-length t
+         history-delete-duplicates t
+         savehist-autosave-interval nil
+         savehist-save-minibuffer-history t
+         savehist-additional-variables
+         '(kill-ring                        ; persist clipboard
+           register-alist                   ; persist macros
+           mark-ring global-mark-ring       ; persist marks
+           search-ring regexp-search-ring))
 
-  (setq auto-save-default t
-        auto-save-include-big-deletions t
-        auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
-        auto-save-file-name-transforms
-        (list (list "\\`/[^/]*:\\([^/]*/\\)*\\([^/]*\\)\\'"
-                    ;; Prefix tramp autosaves to prevent conflicts with local ones
-                    (concat auto-save-list-file-prefix "tramp-\\2") t)
-              (list ".*" auto-save-list-file-prefix t))))
+  (add-hook! 'savehist-save-hook
+    (defun savehist-remove-unprintable-registers-h ()
+      "Remove unwriteable registers (e.g. containing window configurations).
+Otherwise, `savehist' would discard `register-alist' entirely if we don't omit
+the unwritable tidbits."
+      ;; Save new value in the temp buffer savehist is running
+      ;; `savehist-save-hook' in. We don't want to actually remove the
+      ;; unserializable registers in the current session!
+      (setq-local register-alist
+                  (cl-remove-if-not #'savehist-printable register-alist)))
+
+    (defun savehist-unpropertize-variables-h ()
+      "Remove text properties from `kill-ring' to reduce savehist cache size."
+      (setq kill-ring
+            (mapcar #'substring-no-properties
+                    (cl-remove-if-not #'stringp kill-ring))
+            register-alist
+            (cl-loop for (reg . item) in register-alist
+                     if (stringp item)
+                     collect (cons reg (substring-no-properties item))
+                     else collect (cons reg item))))))
+
+
+(setq auto-save-default t
+      auto-save-include-big-deletions t
+      auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
+      auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
+
+(auto-save-mode)
 
 (general-with-package 'compile
   (require 'general)
@@ -164,15 +186,20 @@
   :elpaca nil
   :ghook 'elpaca-after-init-hook
   :init (recentf-mode)
+  :custom
+  (recentf-save-file (concat cache-dir "recentf"))
   :general
   ("C-x C-r" #'recentf)
   (leader/file
     "r" #'recentf)
   :config
-  (setq recentf-max-saved-items 1000)
+  (setq recentf-auto-cleanup nil
+        recentf-max-saved-items 200)
   (setq recentf-exclude '("^/tmp/emacs/.*" "^/var/folders\\.*" "COMMIT_EDITMSG\\'"
-                           ".*-autoloads\\.el\\'" "[/\\]\\.elpa/"))
-  (add-hook! 'kill-emacs-hook #'recentf-save-list))
+                          ".*-autoloads\\.el\\'" "[/\\]\\.elpa/"))
+
+  (setq recentf-auto-cleanup (if (daemonp) 300))
+  (add-hook 'kill-emacs-hook #'recentf-cleanup))
 
 (use-package clipetty
   :ensure t

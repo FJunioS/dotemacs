@@ -53,7 +53,9 @@
 (leader/file
   "f" #'find-file
   "r" #'consult-recent-file
-  "d" #'manual-save-buffer)
+  "d" #'manual-save-buffer
+  "o" '(:ignore t :wk "options")
+  "op" #'(lambda () (interactive) (consult-fd "~/.emacs.d/")))
 
 (leader/toggle
   "w" #'toggle-word-wrap)

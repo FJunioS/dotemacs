@@ -1,3 +1,0 @@
-#+TITLE: tasks
-
-** TODO enable =pixel-scroll-precision-mode= on /init-hook/, disable on =PDF mode=

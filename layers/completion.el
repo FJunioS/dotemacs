@@ -4,9 +4,10 @@
   :init (yas-global-mode)
   :general
   (leader/yasnippet
-   "i" #'(yas-insert-snippet :wk "Insert snippet")
-   "n" #'(yas-new-snippet :wk "New snippet")
-   "e" #'(yas-visit-snippet-file :wk "Edit snippet"))
+    "" nil
+    "i" #'(yas-insert-snippet :wk "Insert snippet")
+    "n" #'(yas-new-snippet :wk "New snippet")
+    "e" #'(yas-visit-snippet-file :wk "Edit snippet"))
 
   :config
   (add-hook 'escape-hook #'yas-abort-snippet)
@@ -37,13 +38,14 @@
     (add-hook c #'corfu-enable-in-minibuffer))
 
   (setq corfu-auto t
-         corfu-preview-current nil
-         corfu-auto-delay 0.15
-         corfu-quit-no-match t
-         corfu-auto-prefix 3)
+        corfu-preview-current nil
+        corfu-auto-delay 0.15
+        corfu-quit-no-match t
+        corfu-auto-prefix 3)
 
   (def 'insert "C-k" nil)
 
+  (imap "C-SPC" #'completion-at-point)
   (general-def 'corfu-map
     "C-SPC" #'corfu-insert-separator
     "C-i" #'corfu-insert
@@ -128,6 +130,10 @@
     (orderless-style-dispatchers '(orderless-fast-dispatch))
     (orderless-matching-styles '(orderless-literal orderless-regexp)))
 
+(setq vertico-posframe-parameters
+      '((left-fringe . 8)
+        (right-fringe . 8)))
+
   (setq orderless-matching-styles
         '(orderless-literal
           orderless-prefixes
@@ -138,10 +144,12 @@
   :elpaca (consult :files (:defaults "consult-*"))
   :general
   (leader
-    "SPC" #'consult-buffer)
-  ("C-s" #'consult-line
-   "C-x C-r" #'consult-recent-file
-   "C-<tab>" #'consult-buffer)
+    "SPC" #'switch-to-buffer)
+  (leader/system
+    "s" #'switch-to-buffer)
+  ("C-s"     #'consult-line
+   "M-s"     #'consult-buffer
+   "C-x C-r" #'consult-recent-file)
 
   :init
   (advice-add #'register-preview :override #'consult-register-window)
@@ -149,10 +157,10 @@
         register-preview-function #'consult-register-format)
 
   :config
-(defun my/consult-line-forward ()
-  "Search for a matching line forward."
-  (interactive)
-  (consult-line))
+  (defun my/consult-line-forward ()
+    "Search for a matching line forward."
+    (interactive)
+    (consult-line))
 
 (defun my/consult-line-backward ()
   "Search for a matching line backward."
@@ -205,45 +213,6 @@ DEFS is a plist associating completion categories to commands."
     (insert (expand-file-name file default-directory))
     (exit-minibuffer))))
 
-(use-package all-the-icons-ivy)
-
-(use-package ivy)
-
-(use-package counsel
-  :config
-  (require 'counsel)
-  (defun fzf (p)
-    (interactive)
-    (counsel-fzf nil p))
-  (leader/file
-    "o" #'(lambda () (interactive) (fzf "~/sync/config/emacs")))
-  (setq counsel-fzf-cmd "fzf -f \"%s\"")
-
-  (consult-customize
-   consult-ripgrep consult-git-grep consult-grep
-   consult-bookmark consult-recent-file consult-xref
-   consult--source-bookmark consult--source-file-register
-   consult--source-recent-file consult--source-project-recent-file
-
-   :preview-key "M-.")
-
-(defun consult-emacs ()
-  "Search through Emacs info pages."
-  (interactive)
-  (consult-info "emacs" ))
-
-(defun consult-elisp ()
-  "Search through Emacs info pages."
-  (interactive)
-  (consult-info "elisp" "cl"))
-
-  ;; TODO move this somewhere else
-  (setq org-imenu-depth 10)
-  (setq consult-async-min-input 3)
-  (setq consult-async-input-throttle 0.2)
-  (setq consult-async-input-debounce 0.2)
-  (setq consult-find-args "find . -not ( -wholename */.* -prune -o -name node_modules -prune )"))
-
 (use-package consult-gh ; Consult Github
   :elpaca (:host github :repo "armindarvish/consult-gh"))
 
@@ -253,6 +222,15 @@ DEFS is a plist associating completion categories to commands."
   :config
   (setq vertico-prescient-enable-filtering nil)
   (vertico-prescient-mode))
+
+(use-package vertico-posframe
+  :after vertico
+  :config
+  (vertico-posframe-mode)
+  (gsetq posframe-mouse-banish-function #'posframe-mouse-banish-simple)
+
+
+  (vertico-multiform-mode))
 
 (use-package vertico
   :general
@@ -277,6 +255,10 @@ DEFS is a plist associating completion categories to commands."
 
   :custom
   (vertico-buffer-display-action '(display-buffer-reuse-window)) ; Default
+  (vertico-multiform-categories
+   '((t (left-fringe-width 80))
+     (symbol (vertico-sort-function . vertico-sort-alpha))
+     (file (vertico-sort-function . sort-directories-first))))
 
   :init
   (autoload 'vertico--advice "vertico")
@@ -291,14 +273,24 @@ DEFS is a plist associating completion categories to commands."
       (advice-remove #'completing-read-multiple #'vertico--advice)))
 
   (vertico-mode)
-
   (general-add-hook 'minibuffer-setup-hook #'vertico-repeat-save)
-  :hook ((minibuffer-setup . vertico-repeat-save) ; Make sure vertico state is saved
-         (rfn-eshadow-update-overlay . vertico-directory-tidy)) ; Correct file path when changed
-
   :config
-  (setq vertico-count 10
-        vertico-scroll-margin 4
+  (vertico-mouse-mode)
+
+  (defadvice vertico-insert
+      (after vertico-insert-add-history activate)
+    "Make vertico-insert add to the minibuffer history."
+    (unless (eq minibuffer-history-variable t)
+      (add-to-history minibuffer-history-variable (minibuffer-contents))))
+
+  (add-hook 'minibuffer-setup #'vertico-repeat-save) ; Make sure vertico state is saved
+  (add-hook 'rfn-eshadow-update-overlay #'vertico-directory-tidy) ; Correct file path when changed
+
+  (general-with 'savehist
+    (general-pushnew 'vertico-repeat-history savehist-additional-variables))
+
+  (gsetq vertico-count 10
+        vertico-scroll-margin 8
         vertico-cycle nil)
 
   (gsetq vertico-indexed-start 1)
@@ -338,7 +330,6 @@ DEFS is a plist associating completion categories to commands."
                  (let ((vertico--index ,index))
                    (vertico-directory-enter))))
 
-
   (general-def vertico-map
     "<prior>" #'vertico-scroll-down
     "<next>" #'vertico-scroll-up
@@ -352,6 +343,12 @@ DEFS is a plist associating completion categories to commands."
     "8" (generate-vertico-select-index! 7)
     "9" (generate-vertico-select-index! 8)
     "0" (generate-vertico-select-index! 9))
+
+  ;; Sort directories before files
+  (defun sort-directories-first (files)
+    (setq files (vertico-sort-history-length-alpha files))
+    (nconc (seq-filter (lambda (x) (string-suffix-p "/" x)) files)
+           (seq-remove (lambda (x) (string-suffix-p "/" x)) files)))
 
   ;; Prefix the current candidate with “» ”. From
   ;; https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow
@@ -412,7 +409,6 @@ targets."
   (advice-add #'embark-completing-read-prompter
               :around #'embark-hide-which-key-indicator)
 
-  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
   ;; Hide the mode line of the Embark live/completions buffers
   (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"

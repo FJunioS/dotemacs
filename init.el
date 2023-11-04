@@ -49,7 +49,7 @@
   :group 'ju
   :prefix "ju-core-")
 
- (define-widget 'ju-alist 'lazy
+(define-widget 'ju-alist 'lazy
   "Ju's alist type."
   :type '(alist :key-type (or symbol (repeat symbol))
                 :value-type symbol))
@@ -127,9 +127,14 @@ tell you about it. Very annoying. This prevents that."
 ;; Linux copying is transferred to Emacs kill-ring
 (setq select-enable-clipboard t)
 (setq select-enable-primary t)  ; Mouse selection yanks
+
 (electric-pair-mode 1)
 (global-subword-mode)
-(add-hook! '(prog-mode-hook org-mode-hook text-mode-hook) #'hl-line-mode)
+
+(global-visual-line-mode 1)
+(add-hook! '(prog-mode-hook
+             org-mode-hook
+             text-mode-hook) #'hl-line-mode)
 
 (setq find-file-visit-truename t
       vc-follow-symlinks t)
@@ -143,10 +148,13 @@ tell you about it. Very annoying. This prevents that."
 (setq enable-recursive-minibuffers t)
 (minibuffer-depth-indicate-mode)
 (blink-cursor-mode -1)
+(setq ring-bell-function 'ignore)
 
 (setq-default fill-column 80)
 
-(global-visual-line-mode 1)
+(setq mouse-autoselect-window t
+      focus-follows-mouse t)
+
 (setq visual-line-fringe-indicators '(t t))
 (setq split-height-threshold nil
       split-width-threshold 0)
@@ -167,29 +175,28 @@ tell you about it. Very annoying. This prevents that."
       (when (= p (point))
         ad-do-it))))
 
-(auto-save-visited-mode)
-(setq kill-ring-max 300)
-(setq history-length 3000
-      history-delete-duplicates t)
-(setq frame-title-format '("%b"))
-(setq ring-bell-function 'ignore)
-(setq use-short-answers t)
-(setq native-compile-prune-cache t) ; Emacs 29
-(setq native-comp-async-report-warnings-errors 'silent)
-(setq custom-file (expand-file-name "custom.el" emacs-dir))
-
-;; increase number of messages
-(setq message-log-max 10000)
-(setq fast-but-imprecise-scrolling t)
-(setq kill-do-not-save-duplicates t)
-(setq adaptive-fill-mode nil)
-(setq show-paren-style 'mixed)
-(undelete-frame-mode) ; Emacs 29
 
 (setq-default indent-tabs-mode nil
               tab-width 4)
 (setq-hook! 'emacs-lisp-mode-hook
   tab-width 2)
+(setq message-log-max 10000)
+(setq kill-ring-max 300)
+(setq history-length 3000
+      history-delete-duplicates t)
+(setq frame-title-format '("%b"))
+(setq use-short-answers t)
+(setq native-compile-prune-cache t) ; Emacs 29
+(setq native-comp-async-report-warnings-errors 'silent)
+(setq custom-file (expand-file-name "custom.el" cache-dir))
+
+;; increase number of messages
+(setq fast-but-imprecise-scrolling t)
+(setq adaptive-fill-mode nil)
+(setq kill-do-not-save-duplicates t)
+(setq show-paren-style 'mixed)
+
+(undelete-frame-mode) ; Emacs 29
 
 ;; Emacs by default will warn you when you use some commands for the first time.
 (dolist (c '(narrow-to-region narrow-to-page upcase-region downcase-region
@@ -203,7 +210,6 @@ tell you about it. Very annoying. This prevents that."
 (setq x-gtk-use-system-tooltips nil
       pos-tip-internal-border-width 1)
 (setq x-underline-at-descent-line t)
-(setq require-final-newline t)
 (setq window-resize-pixelwise t
       frame-resize-pixelwise t)
 (setq-default cursor-in-non-selected-windows nil)
@@ -214,6 +220,9 @@ tell you about it. Very annoying. This prevents that."
 (setq inhibit-message t)
 (require 'core-compilation nil t)
 (require 'core-packages nil t)
+
+;; Avoid packages store cache on emacs folder.
+(setq user-emacs-directory cache-dir)
 
 (defconst layers
   '(essentials

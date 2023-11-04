@@ -290,7 +290,7 @@ BODY is run periodically even if Emacs is actively being used."
   "`defun' but guaranteed return the created function."
   (declare (doc-string 3) (indent 2))
   `(progn (defun ,name ,arglist ,docstring ,@body)
-          #',name))
+          #',name)
 
 (defmacro noct-c (&rest body)
   "Like `general-lambda' but create named function based on BODY.
@@ -564,7 +564,7 @@ Since ~setq~, ~add-hook~, and ~evil-define-key~ can all be used before the speci
 Here are the guidelines I follow for using ~use-package~ keywords and the order I use them in.
 
 Package installation:
-- =:straight= to specify recipes for custom or local packages (don't use ~straight-override-recipe~ when using =:straight= for clarity as it will inherit from the default recipe when used before the use-package statement or it will be too late if used after the use-package statement)
+- =:elpaca= to specify recipes for custom or local packages (don't use ~straight-override-recipe~ when using =:straight= for clarity as it will inherit from the default recipe when used before the use-package statement or it will be too late if used after the use-package statement)
 
 Package loading:
 - =:disabled= for disabled packages (e.g. unused themes)
