@@ -3,7 +3,7 @@
 ;;; Code:
 
 (require 'ibuffer)
-(setq ibuffer-saved-filter-groups
+(gsetq ibuffer-saved-filter-groups
       '(("default"
          ;; ("Modified" (predicate buffer-modified-p (current-buffer)))
          ("Dired" (mode . dired-mode))
@@ -16,6 +16,8 @@
                                    (not (string-match-p "spec\\.rs\\'"
                                                         buffer-file-name)))))
          ("Tests" (name . "spec\\.rs\\'"))
+
+         ("EXWM" (mode . exwm-mode))
 
          ("Help" (or (mode . helpful-mode)
                      (mode . help-mode)))
@@ -30,7 +32,6 @@
                   (name . "^\\.bbdb$")
                   (name . "^\\.newsrc-dribble")))
          ("*internal*" (name . "\\*"))))
-
       ;; Modify the default ibuffer-formats
       ibuffer-formats
       '((mark modified read-only locked " "
@@ -56,8 +57,7 @@
           (move-beginning-of-line nil)
           (ibuffer-toggle-filter-group)))))
   (goto-char 1)
-  (search-forward "[ " (point-max) t)
-  )
+  (search-forward "[ " (point-max) t))
 
 (ad-activate 'ibuffer)
 

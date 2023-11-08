@@ -19,7 +19,7 @@
  '(flymake-end-of-line-diagnostics-face ((t (:inherit modus-themes-slant :box (:line-width (1 . 1) :color "#61647a") :height 0.85))))
  '(flymake-error-echo-at-eol ((t (:foreground "#ff5f59"))))
  '(flymake-note-echo-at-eol ((t (:foreground "#6ae4b9" :box nil))))
- '(font-lock-punctuation-face ((t (:foreground "#5A4B72"))))
+ '(font-lock-punctuation-face ((t (:foreground "#8c7ec7"))))
  '(font-lock-warning-face ((t (:inherit modus-themes-bold :foreground "violet"))))
  '(fringe ((t (:background "#101d20"))))
  '(modus-themes-lang-warning ((t (:underline "#f9b37f"))) t)
@@ -32,4 +32,4 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(org-agenda-files '("~/sync/config/emacs/layers/navigation.el")))
+ '(centaur-tabs-backward-tab-text "⏴"))

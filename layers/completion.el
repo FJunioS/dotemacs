@@ -157,6 +157,8 @@
         register-preview-function #'consult-register-format)
 
   :config
+  (wm-map "M-y" #'consult-yank-from-kill-ring)
+
   (defun my/consult-line-forward ()
     "Search for a matching line forward."
     (interactive)
@@ -227,12 +229,11 @@ DEFS is a plist associating completion categories to commands."
   :after vertico
   :config
   (vertico-posframe-mode)
-  (gsetq posframe-mouse-banish-function #'posframe-mouse-banish-simple)
-
-
-  (vertico-multiform-mode))
+  (gsetq posframe-mouse-banish-function #'posframe-mouse-banish-simple))
 
 (use-package vertico
+  :ensure t
+  :defer 1
   :general
   (nmap "?" #'vertico-repeat)
   (general-def 'vertico-map
@@ -240,6 +241,7 @@ DEFS is a plist associating completion categories to commands."
     "," #'vertico-repeat-select
     "C-l" #'vertico-directory-enter
     "C-j" #'vertico-next
+    "C-h" (cmds! (eq 'file (vertico--metadata-get 'category)) #'vertico-directory-up)
     "C-k" #'vertico-previous
     "C-i" #'vertico-insert
     "C-o" #'vertico-first
@@ -253,29 +255,22 @@ DEFS is a plist associating completion categories to commands."
     "<backspace>" #'vertico-directory-delete-char
     "C-<backspace>" #'vertico-directory-delete-word)
 
-  :custom
-  (vertico-buffer-display-action '(display-buffer-reuse-window)) ; Default
-  (vertico-multiform-categories
-   '((t (left-fringe-width 80))
-     (symbol (vertico-sort-function . vertico-sort-alpha))
-     (file (vertico-sort-function . sort-directories-first))))
-
   :init
-  (autoload 'vertico--advice "vertico")
-  (define-minor-mode vertico-mode
-    "VERTical Interactive COmpletion."
-    :global t :group 'vertico
-    (if vertico-mode
-        (progn
-          (advice-add #'completing-read-default :around #'vertico--advice)
-          (advice-add #'completing-read-multiple :around #'vertico--advice))
-      (advice-remove #'completing-read-default #'vertico--advice)
-      (advice-remove #'completing-read-multiple #'vertico--advice)))
-
   (vertico-mode)
-  (general-add-hook 'minibuffer-setup-hook #'vertico-repeat-save)
-  :config
   (vertico-mouse-mode)
+  (vertico-indexed-mode)
+  :hook
+  ((minibuffer-setup-hook . #'vertico-repeat-save))
+  :config
+  (vertico-multiform-mode)
+  (gsetq vertico-buffer-display-action '(display-buffer-reuse-window)) ; Default
+  (gsetq vertico-sort-function #'sort-directories-first)
+
+  (gsetq vertico-multiform-commands
+        '((describe-symbol (vertico-sort-function . vertico-sort-alpha))))
+  (gsetq vertico-multiform-categories
+         '((symbol (vertico-sort-function . vertico-sort-alpha))
+           (consult-grep buffer)))
 
   (defadvice vertico-insert
       (after vertico-insert-add-history activate)
@@ -286,15 +281,18 @@ DEFS is a plist associating completion categories to commands."
   (add-hook 'minibuffer-setup #'vertico-repeat-save) ; Make sure vertico state is saved
   (add-hook 'rfn-eshadow-update-overlay #'vertico-directory-tidy) ; Correct file path when changed
 
-  (general-with 'savehist
-    (general-pushnew 'vertico-repeat-history savehist-additional-variables))
+  (general-pushnew 'vertico-repeat-history savehist-additional-variables)
 
   (gsetq vertico-count 10
         vertico-scroll-margin 8
+        vertico-resize nil
         vertico-cycle nil)
 
+  ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
+  (setq read-extended-command-predicate
+        #'command-completion-default-include-p)
+
   (gsetq vertico-indexed-start 1)
-  (vertico-indexed-mode)
 
   (dolist (c (list (cons "SPC" " ")
                    (cons "." ".")
@@ -430,7 +428,9 @@ targets."
   (marginalia-align 'left)
   (marginalia-align-offset 20)
   :init
-  (marginalia-mode))
+  (marginalia-mode)
+  (gsetq marginalia-annotators
+         '(marginalia-annotators-heavy marginalia-annotators-light nil)))
 
 (provide 'completion)
 ;; completion.el ends here

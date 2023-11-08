@@ -56,10 +56,6 @@
 ;; PERF: A second, case-insensitive pass over `auto-mode-alist' is time wasted.
 (setq auto-mode-case-fold nil)
 
-;; Reduce scan work by rendering only focused frames
-
-(setq read-process-output-max (* 64 1024))  ; 64kb
-
 (setq-default cursor-in-non-selected-windows nil)
 (setq highlight-nonselected-windows nil)
 

@@ -4,24 +4,12 @@
 (require 'core-lib)
 (require 'core-packages)
 
-(use-package mini-echo
-  :elpaca (:host github :repo "liuyinz/mini-echo.el")
-  :config
-  (general-after-gui
-    (mini-echo-mode))
-
-  (gsetq mini-echo-separator " | "
-         mini-echo-right-padding 1)
-
-  (mini-echo-define-segment "time"
-    "Return current time info."
-    :setup (display-time-mode 1)
-    :fetch (propertize display-time-string 'face 'mini-echo-time)))
-
 ;; ** Font
 (general-after-gui
-  (when (member "Iosevka Custom" (font-family-list))
-    (set-frame-font "Iosevka Custom-14" t t)))
+  (set-language-environment "UTF-8")
+  (set-default-coding-systems 'utf-8-unix)
+  (when (member "Fantasque Sans Mono" (font-family-list))
+    (set-frame-font "Fantasque Sans Mono-16" t t)))
 
 (use-package highlight-escape-sequences
   :after 'modus-themes
@@ -43,11 +31,6 @@
 
 ;; Icons
 (use-package all-the-icons)
-
-;;  Whitespace
-;; Mode-line
-
-;; Them
 (use-package all-the-icons-completion
   :init
   (all-the-icons-completion-mode)
@@ -64,7 +47,6 @@
 
 ;; (add-function :after after-focus-change-function
 ;;               #'my-change-background)
-
 ;; (defun my-change-background ()
 ;;   (dolist (frame (frame-list))
 ;;     (pcase (frame-focus-state frame)
@@ -186,19 +168,79 @@
   (general-after-gui
     (set-theme)))
 
-;; (general-after-gui
-;;   (gsetq-default mode-line-format
-;;                  '(("%e" mode-line-front-space
-;;                     (:propertize
-;;                      ("" mode-line-mule-info mode-line-client mode-line-modified mode-line-remote)
-;;                      display
-;;                      (min-width
-;;                       (5.0)))
-;;                     mode-line-frame-identification
-;;                     mode-line-buffer-identification
-;;                     "   " mode-line-position
-;;                     (vc-mode vc-mode)
-;;                     "  " mode-line-misc-info flymake-mode-line-format " | "  mode-name))))
+(general-after-gui
+  (defvar mode-line-align-left nil)
+  (defvar mode-line-align-middle nil)
+  (defvar mode-line-align-right nil)
+  (defconst RIGHT_PADDING 1)
+  (setq mode-line-align-left
+        '(("%e" mode-line-front-space
+           (:propertize
+            ("" mode-line-mule-info mode-line-client mode-line-modified mode-line-remote)
+            display (min-width (5.0)))
+           mode-line-frame-identification
+           mode-line-buffer-identification
+           "   " mode-line-position
+           "  " )))
+
+  (setq mode-line-align-middle
+        '(""
+          (:propertize (:eval (symbol-name major-mode)) face font-lock-type-face)
+          (eglot--managed-mode
+           (" [" eglot--mode-line-format "] "))
+          " "
+          ))
+
+  (gsetq mode-line-align-right
+         '(""
+           (:propertize (:eval (shorten-directory default-directory 30)) face font-lock-string-face)
+           (vc-mode vc-mode)
+           " | "
+           flymake-mode-line-format
+           " | "
+           mode-name
+           "\t"
+           (global-mode-string
+            ("" global-mode-string))
+           ))
+
+  (defun mode-line-fill-right (face reserve)
+    "Return empty space using FACE and leaving RESERVE space on the right."
+    (unless reserve
+      (setq reserve 20))
+    (when (and window-system (eq 'right (get-scroll-bar-mode)))
+      (setq reserve (- reserve 3)))
+    (propertize " "
+                'display `((space :align-to (- (+ right right-fringe right-margin) ,reserve)))
+                'face face))
+
+  (defun mode-line-fill-center (face reserve)
+    "Return empty space using FACE to the center of remaining space leaving RESERVE space on the right."
+    (unless reserve
+      (setq reserve 20))
+    (when (and window-system (eq 'right (get-scroll-bar-mode)))
+      (setq reserve (- reserve 3)))
+    (propertize " "
+                'display `((space :align-to (- (+ center (.5 . right-margin)) ,reserve
+                                               (.5 . left-margin))))
+                'face face))
+
+  (defun reserve-left/middle ()
+    (/ (length (format-mode-line mode-line-align-middle)) 2))
+
+  (defun reserve-middle/right ()
+    (+ RIGHT_PADDING (length (format-mode-line mode-line-align-right))))
+
+  (gsetq mode-line-format
+         (list
+          mode-line-align-left
+          '(:eval (mode-line-fill-center 'mode-line
+                                         (reserve-left/middle)))
+          mode-line-align-middle
+          '(:eval
+            (mode-line-fill-right 'mode-line
+                                  (reserve-middle/right)))
+          mode-line-align-right)))
 
 (provide 'ui)
 ;;; ui.el ends here

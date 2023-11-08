@@ -91,6 +91,10 @@ tell you about it. Very annoying. This prevents that."
 (setq-default user-full-name "Junio Santos"
               user-mail-address "git@junio.dev")
 
+;; Avoid buffer lag
+(setq process-adaptive-read-buffering nil)
+(setq read-process-output-max (* 4 1024 1024)) ; from 800Kb to 4Mb
+
 ;; Redirect autosave files to `cache-dir'
 (setq backup-directory-alist (list (cons "." (concat cache-dir "backup/")))
       auto-save-list-file-prefix (concat cache-dir "autosave/")
@@ -151,10 +155,8 @@ tell you about it. Very annoying. This prevents that."
 (setq ring-bell-function 'ignore)
 
 (setq-default fill-column 80)
-
 (setq mouse-autoselect-window t
       focus-follows-mouse t)
-
 (setq visual-line-fringe-indicators '(t t))
 (setq split-height-threshold nil
       split-width-threshold 0)
@@ -200,7 +202,7 @@ tell you about it. Very annoying. This prevents that."
 
 ;; Emacs by default will warn you when you use some commands for the first time.
 (dolist (c '(narrow-to-region narrow-to-page upcase-region downcase-region
-	           erase-buffer scroll-left dired-find-alternate-file))
+	                            erase-buffer scroll-left dired-find-alternate-file))
   (put c 'disabled nil))
 
 ;; And disable these
@@ -214,12 +216,21 @@ tell you about it. Very annoying. This prevents that."
       frame-resize-pixelwise t)
 (setq-default cursor-in-non-selected-windows nil)
 (setq highlight-nonselected-windows nil)
+
 (setq idle-update-delay 1)
+(setq read-file-name-completion-ignore-case t
+      read-buffer-completion-ignore-case t
+      completion-ignore-case t)
 
 (setq debug-on-error t)
 (setq inhibit-message t)
 (require 'core-compilation nil t)
 (require 'core-packages nil t)
+
+;;; Allow non-floating resizing with mouse.
+(setq window-divider-default-bottom-width 2
+      window-divider-default-right-width 2)
+(window-divider-mode)
 
 ;; Avoid packages store cache on emacs folder.
 (setq user-emacs-directory cache-dir)

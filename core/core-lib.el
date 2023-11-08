@@ -120,7 +120,7 @@ If NOERROR, don't throw an error if PATH doesn't exist."
 Can also load subfeatures, e.g. (require! '+some-lib 'some-files)"
   (let ((subfeature (if (symbolp filename) filename)))
     (or (featurep feature subfeature)
-        (!load
+        (load!
          (if subfeature
              (file-name-concat core-dir
                                (string-remove-prefix "+" (symbol-name feature))
@@ -726,6 +726,61 @@ Useful to use on stuck buffers opened with `emacsclient'"
           (replace-match footer)
         (insert "\n" footer)))
     (message "Header and footer updated in %s" file-name)))
+
+(defun ju-hash-to-list (HashTable)
+  (let ((xx nil))
+    (maphash
+     (lambda (k v)
+       (push (list  k v) xx))
+     HashTable)
+    xx))
+
+(defmacro cmds! (&rest branches)
+  "Returns a dispatcher that runs the a command in BRANCHES.
+Meant to be used as a target for keybinds (e.g. with `define-key' or `general-def').
+
+BRANCHES is a flat list of CONDITION COMMAND pairs. CONDITION is a lisp form
+that is evaluated when (and each time) the dispatcher is invoked. If it returns
+non-nil, COMMAND is invoked, otherwise it falls through to the next pair.
+
+The last element of BRANCHES can be a COMMANd with no CONDITION. This acts as
+the fallback if all other conditions fail.
+
+Otherwise, Emacs will fall through the keybind and search the next keymap for a
+keybind (as if this keybind never existed).
+
+See `general-key-dispatch' for what other arguments it accepts in BRANCHES."
+  (declare (doc-string 1))
+  (let ((docstring (if (stringp (car branches)) (pop branches) ""))
+        fallback)
+    (when (cl-oddp (length branches))
+      (setq fallback (car (last branches))
+            branches (butlast branches)))
+    (let ((defs (cl-loop for (key value) on branches by 'cddr
+                         unless (keywordp key)
+                         collect (list key value))))
+      `'(menu-item
+         ,(or docstring "") nil
+         :filter (lambda (&optional _)
+                   (let (it)
+                     (cond ,@(mapcar (lambda (pred-def)
+                                       `((setq it ,(car pred-def))
+                                         ,(cadr pred-def)))
+                                     defs)
+                           (t ,fallback))))))))
+
+(defmacro first-arg! (arg)
+  `(if (string-match ,`(format "\\b\\(%s\\)\\b" ,arg) ,arg)
+       (match-string 1 ,arg)))
+
+(defmacro first-word! (arg)
+  `(if (string-match ,`(format "\\b\\(%s\\).*" ,arg) ,arg)
+       (match-string 1 ,arg)))
+
+(defmacro symbol-or-self! (val)
+  `(if ,(ignore-error (symbol-name val))
+       (symbol-name ,val)
+     ,val))
 
 (provide 'core-lib)
 ;;; core-lib.el ends here

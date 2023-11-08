@@ -36,7 +36,8 @@
   "M-o" #'evil-switch-to-windows-last-buffer)
 
 (leader
-  "-" #'dired-jump)
+  "-" #'evil-window-split
+  "v" #'evil-window-vsplit)
 
 (leader/open
   "w" #'woman)
@@ -46,9 +47,11 @@
   "k" #'evil-window-up
   "j" #'evil-window-down
   "h" #'evil-window-left
-
   "i" #'ibuffer
   "d" #'kill-buffer-delete-window)
+
+(leader/register
+  "a" #'bookmark-set)
 
 (leader/file
   "f" #'find-file
@@ -60,46 +63,45 @@
 (leader/toggle
   "w" #'toggle-word-wrap)
 
-;; ** Packages keymaps
-(use-package centaur-tabs
-  :init
-  (general-after-gui
-    (centaur-tabs-mode))
-  :general
-  (global-key
-    "M-[" #'centaur-tabs-backward-group
-    "M-]" #'centaur-tabs-forward-group
-    "M-p" #'centaur-tabs-forward-tab
-    "M-n" #'centaur-tabs-backward-tab)
-
-  (leader/system
-    "p" #'centaur-tabs-forward
-    "n" #'centaur-tabs-backward)
-  (leader
-    "[" #'centaur-tabs-backward-group
-    "]" #'centaur-tabs-forward-group)
-  :config
-  (gsetq centaur-tabs-set-icons t
-         centaur-tabs-set-bar 'left
-         centaur-tabs-down-tab-text "▾"
-         centaur-tabs-forward-tab-text "⏵"
-         centaur-tabs-backward-tab-text "⏴"
-         centaur-tabs-style "rounded"
-         centaur-tabs-height 32
-         centaur-tabs-show-new-tab-button t
-         centaur-tabs-set-modified-marker t
-         centaur-tabs-show-navigation-buttons t
-         centaur-tabs-left-edge-margin nil)
-
-  (centaur-tabs-change-fonts (face-attribute 'default :font) 110)
-  (centaur-tabs-headline-match)
-  (setq uniquify-separator "/")
-  (setq uniquify-buffer-name-style 'forward)
-  :hook
-  (dashboard-mode . centaur-tabs-local-mode)
-  (term-mode . centaur-tabs-local-mode)
-  (calendar-mode . centaur-tabs-local-mode)
-  (org-agenda-mode . centaur-tabs-local-mode))
+;; ;; ** Packages keymaps
+;; (use-package centaur-tabs
+;;   :init
+;;   (general-after-gui
+;;     (centaur-tabs-mode))
+;;   :general
+;;   (global-key
+;;     "M-[" #'centaur-tabs-backward-group
+;;     "M-]" #'centaur-tabs-forward-group
+;;     "M-p" #'centaur-tabs-forward-tab
+;;     "M-n" #'centaur-tabs-backward-tab)
+;;
+;; (leader/system
+;;   "p" #'centaur-tabs-forward
+;;   "n" #'centaur-tabs-backward)
+;; (leader
+;;   "[" #'centaur-tabs-backward-group
+;;   "]" #'centaur-tabs-forward-group)
+;; :config
+;; (gsetq centaur-tabs-set-icons t
+;;        centaur-tabs-set-bar 'left
+;;        centaur-tabs-down-tab-text "▾"
+;;        centaur-tabs-forward-tab-text "⏵"
+;;        centaur-tabs-backward-tab-text "⏴"
+;;        centaur-tabs-style "rounded"
+;;        centaur-tabs-height 32
+;;        centaur-tabs-show-new-tab-button t
+;;        centaur-tabs-set-modified-marker t
+;;        centaur-tabs-show-navigation-buttons t
+;;        centaur-tabs-left-edge-margin nil)
+  ;; (centaur-tabs-change-fonts (face-attribute 'default :font) 110)
+  ;; (centaur-tabs-headline-match)
+  ;; (setq uniquify-separator "/")
+  ;; (setq uniquify-buffer-name-style 'forward)
+  ;; :hook
+  ;; (dashboard-mode . centaur-tabs-local-mode)
+  ;; (term-mode . centaur-tabs-local-mode)
+  ;; (calendar-mode . centaur-tabs-local-mode)
+  ;; (org-agenda-mode . centaur-tabs-local-mode))
 
 (use-package drag-stuff
   :init
@@ -209,7 +211,6 @@
   "C-b" (wrap-region-with-symbol! "*")
   "\"" (wrap-region-with-symbol! "\"")
   "_" (wrap-region-with-symbol! "_")
-  "/" (wrap-region-with-symbol! "/")
   "'" (wrap-region-with-symbol! "'")
   "`" (wrap-region-with-symbol! "`" "'")
   "(" (wrap-region-with-symbol! "(" ")")
@@ -313,101 +314,101 @@ bracket and a matching right bracket.
 
   URL `http://xahlee.info/emacs/emacs/modernization_mark-word.html'
   Version: 2020-02-04 2023-07-22 2023-07-23"
-  (interactive)
-  (if (region-active-p)
-      (progn
-  	    (let ((xrb (region-beginning)) (xre (region-end)))
-  	      (goto-char xrb)
-  	      (cond
-  	       ((looking-at "\\s(")
-  	        (if (eq (nth 0 (syntax-ppss)) 0)
-  		          (progn
-  		            ;; (message "left bracket, depth 0.")
-  		            (end-of-line) ; select current line
-  		            (push-mark (line-beginning-position) t t))
-  	          (progn
-  		          ;; (message "left bracket, depth not 0")
-  		          (up-list -1 t t)
-  		          (mark-sexp))))
-  	       ((eq xrb (line-beginning-position))
-  	        (progn
-  	          (goto-char xrb)
-  	          (let ((xfirstLineEndPos (line-end-position)))
-  		          (cond
-  		           ((eq xre xfirstLineEndPos)
-  		            (progn
-  		              ;; (message "exactly 1 line. extend to next whole line." )
-  		              (forward-line 1)
-  		              (end-of-line)))
-  		           ((< xre xfirstLineEndPos)
-  		            (progn
-  		              ;; (message "less than 1 line. complete the line." )
-  		              (end-of-line)))
-  		           ((> xre xfirstLineEndPos)
-  		            (progn
-  		              ;; (message "beginning of line, but end is greater than 1st end of line" )
-  		              (goto-char xre)
-  		              (if (eq (point) (line-end-position))
-  			                (progn
-  			                  ;; (message "exactly multiple lines" )
-  			                  (forward-line 1)
-  			                  (end-of-line))
-  		                (progn
-  			                ;; (message "multiple lines but end is not eol. make it so" )
-  			                (goto-char xre)
-  			                (end-of-line)))))
-  		           (t (error "%s: logic error 42946" real-this-command))))))
-  	       ((and (> (point) (line-beginning-position)) (<= (point) (line-end-position)))
-  	        (progn
-  	          ;; (message "less than 1 line" )
-  	          (end-of-line) ; select current line
-  	          (push-mark (line-beginning-position) t t)))
-  	       (t
-  	        ;; (message "last resort" )
-  	        nil))))
-    (progn
-      (cond
-       ((looking-at "\\s(")
-  	    ;; (message "left bracket")
-  	    (mark-sexp)) ; left bracket
-       ((looking-at "\\s)")
-  	    ;; (message "right bracket")
-  	    (backward-up-list) (mark-sexp))
-       ((looking-at "\\s\"")
-  	    ;; (message "string quote")
-  	    (mark-sexp)) ; string quote
-       ;; ((and (eq (point) (line-beginning-position)) (not (looking-at "\n")))
-       ;;  (message "beginning of line and not empty")
-       ;;  (end-of-line)
-       ;;  (push-mark (line-beginning-position) t t))
-       (
-  	    ;; (prog2 (backward-char) (looking-at "[-_a-zA-Z0-9]") (forward-char))
-  	    (looking-back "[-_a-zA-Z0-9]" (max (- (point) 1) (point-min)))
-  	    ;; (message "left is word or symbol")
-  	    (skip-chars-backward "-_a-zA-Z0-9")
-  	    ;; (re-search-backward "^\\(\\sw\\|\\s_\\)" nil t)
-  	    (push-mark)
-  	    (skip-chars-forward "-_a-zA-Z0-9")
-  	    (setq mark-active t)
-  	    ;; (exchange-point-and-mark)
-  	    )
-       ((and (looking-at "[:blank:]")
-  	         (prog2 (backward-char) (looking-at "[:blank:]") (forward-char)))
-  	    ;; (message "left and right both space" )
-  	    (skip-chars-backward "[:blank:]") (push-mark (point) t t)
-  	    (skip-chars-forward "[:blank:]"))
-       ((and (looking-at "\n")
-  	         (eq (char-before) 10))
-  	    ;; (message "left and right both newline")
-  	    (skip-chars-forward "\n")
-  	    (push-mark (point)  t t)
-  	    (re-search-forward "\n[ \t]*\n")) ; between blank lines, select next block
-       (t
-  	    ;; (message "just mark sexp" )
-  	    (mark-sexp)
-  	    (exchange-point-and-mark))
-       ;;
-       ))))
+       (interactive)
+       (if (region-active-p)
+           (progn
+             (let ((xrb (region-beginning)) (xre (region-end)))
+               (goto-char xrb)
+               (cond
+                ((looking-at "\\s(")
+                 (if (eq (nth 0 (syntax-ppss)) 0)
+                     (progn
+                       ;; (message "left bracket, depth 0.")
+                       (end-of-line) ; select current line
+                       (push-mark (line-beginning-position) t t))
+                   (progn
+                     ;; (message "left bracket, depth not 0")
+                     (up-list -1 t t)
+                     (mark-sexp))))
+                ((eq xrb (line-beginning-position))
+                 (progn
+                   (goto-char xrb)
+                   (let ((xfirstLineEndPos (line-end-position)))
+                     (cond
+                      ((eq xre xfirstLineEndPos)
+                       (progn
+                         ;; (message "exactly 1 line. extend to next whole line." )
+                         (forward-line 1)
+                         (end-of-line)))
+                      ((< xre xfirstLineEndPos)
+                       (progn
+                         ;; (message "less than 1 line. complete the line." )
+                         (end-of-line)))
+                      ((> xre xfirstLineEndPos)
+                       (progn
+                         ;; (message "beginning of line, but end is greater than 1st end of line" )
+                         (goto-char xre)
+                         (if (eq (point) (line-end-position))
+                             (progn
+                               ;; (message "exactly multiple lines" )
+                               (forward-line 1)
+                               (end-of-line))
+                           (progn
+                             ;; (message "multiple lines but end is not eol. make it so" )
+                             (goto-char xre)
+                             (end-of-line)))))
+                      (t (error "%s: logic error 42946" real-this-command))))))
+                ((and (> (point) (line-beginning-position)) (<= (point) (line-end-position)))
+                 (progn
+                   ;; (message "less than 1 line" )
+                   (end-of-line) ; select current line
+                   (push-mark (line-beginning-position) t t)))
+                (t
+                 ;; (message "last resort" )
+                 nil))))
+         (progn
+           (cond
+            ((looking-at "\\s(")
+             ;; (message "left bracket")
+             (mark-sexp)) ; left bracket
+            ((looking-at "\\s)")
+             ;; (message "right bracket")
+             (backward-up-list) (mark-sexp))
+            ((looking-at "\\s\"")
+             ;; (message "string quote")
+             (mark-sexp)) ; string quote
+            ;; ((and (eq (point) (line-beginning-position)) (not (looking-at "\n")))
+            ;;  (message "beginning of line and not empty")
+            ;;  (end-of-line)
+            ;;  (push-mark (line-beginning-position) t t))
+            (
+             ;; (prog2 (backward-char) (looking-at "[-_a-zA-Z0-9]") (forward-char))
+             (looking-back "[-_a-zA-Z0-9]" (max (- (point) 1) (point-min)))
+             ;; (message "left is word or symbol")
+             (skip-chars-backward "-_a-zA-Z0-9")
+             ;; (re-search-backward "^\\(\\sw\\|\\s_\\)" nil t)
+             (push-mark)
+             (skip-chars-forward "-_a-zA-Z0-9")
+             (setq mark-active t)
+             ;; (exchange-point-and-mark)
+             )
+            ((and (looking-at "[:blank:]")
+                  (prog2 (backward-char) (looking-at "[:blank:]") (forward-char)))
+             ;; (message "left and right both space" )
+             (skip-chars-backward "[:blank:]") (push-mark (point) t t)
+             (skip-chars-forward "[:blank:]"))
+            ((and (looking-at "\n")
+                  (eq (char-before) 10))
+             ;; (message "left and right both newline")
+             (skip-chars-forward "\n")
+             (push-mark (point)  t t)
+             (re-search-forward "\n[ \t]*\n")) ; between blank lines, select next block
+            (t
+             ;; (message "just mark sexp" )
+             (mark-sexp)
+             (exchange-point-and-mark))
+            ;;
+            ))))
 
 (defun xah-goto-matching-bracket ()
   "Move cursor to the matching bracket.

@@ -8,7 +8,14 @@
 (add-hook 'prog-mode-hook #'column-number-mode)
 (electric-pair-mode 1)
 
-(use-package eat)
+(use-package ellama
+  :init
+  (setopt ellama-language "English")
+  (require 'llm-ollama)
+  (setopt ellama-provider
+          (make-llm-ollama
+           :chat-model "zephyr"
+           :embedding-model "zephyr")))
 
 (use-package eldoc
   :ghook 'elpaca-after-init-hook
@@ -20,13 +27,13 @@
 (use-package eldoc-box
   :after eldoc)
 
-(use-package flycheck
-  :init
-  (global-flycheck-mode)
-  :config
-  (setq flycheck-display-errors-delay 0.01
-         flycheck-idle-change-delay 0.01
-         flycheck-idle-buffer-switch-delay 0.01))
+;; (use-package flycheck
+;;   :init
+;;   (global-flycheck-mode)
+;;   :config
+;;   (setq flycheck-display-errors-delay 0.01
+;;          flycheck-idle-change-delay 0.01
+;;          flycheck-idle-buffer-switch-delay 0.01))
 
 ;(use-package flycheck-eglot
     ;:init (global-flycheck-eglot-mode))
@@ -45,18 +52,22 @@
              projectile-relevant-known-projects
              projectile-project-p)
   :general
-  (leader/f
-    "." #'projectile-find-file)
+  (leader/file
+   "." #'projectile-find-file)
   (leader/project
-    "" '(:keymap projectile-command-map))
+    "a" #'projectile-add-known-project
+    "p" #'projectile-switch-project
+    "c" #'projectile-compile-project)
   :config
-  (setq projectile-auto-discover nil
+  (gsetq projectile-auto-discover nil
+         projectile-sort-order 'recently
          projectile-enable-caching (not noninteractive)
-         projectile-ignored-projects '("~/" "~/dev" "~/sync" "~/.config"))
-  (projectile-mode +1))
+         projectile-project-search-path '("~/dev/"))
 
-(use-package highlight-numbers
-  :ghook 'prog-mode-hook)
+  (dolist (dir '("^~\\.cache$" "^/tmp$" "^target$"))
+    (setq projectile-globally-ignored-directories
+          (append dir projectile-globally-ignored-directories)))
+  (projectile-mode +1))
 
 (use-package tree-sitter-langs
   :after tree-sitter)

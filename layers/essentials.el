@@ -7,6 +7,11 @@
 (require '+evil)
 (require 'general)
 
+(display-time-mode)
+(gsetq display-time-24hr-format t
+       display-time-day-and-date t
+       display-time-load-average-threshold nil)
+
 (use-package keychain-environment)
 
 (use-package circe
@@ -26,63 +31,19 @@
                      :help "Show the status of the current Git repository in a buffer"]
                     "Version Control")
 
-(use-package dashboard
-  :ensure t
-  :demand t
-  :defer 0
-  :general
-  (leader/open
-   "d" #'(dashboard-open :wk "Dashboard"))
-  (general-def 'normal 'dashboard-mode-map
-    ;; Widgets
-    "r" (general-simulate-key "r") ; recent
-    "m" (general-simulate-key "m") ; bookmarks
-    "p" (general-simulate-key "p") ; projects
-    "a" (general-simulate-key "a") ; agenda
-    "e" (general-simulate-key "e") ; registers
-    ;; Movement
-    "j" 'widget-forward
-    "k" 'widget-backward
-    "J" 'dashboard-next-line ; move between items and empty lines
-    "K" 'dashboard-previous-line
-    [tab] 'dashboard-next-section
-    [backtab] 'dashboard-previous-section
-
-    ;; Other commands
-    [down-mouse-1] 'widget-button-click)
-  :config
-  (add-hook 'dashboard-mode-hook #'ju/dashboard-mode-hook--visual-adjustments)
-  (setq dashboard-center-content t)
-  (setq dashboard-items '((recents   . 5)
-                          (bookmarks . 5)
-                          (projects  . 5)
-                          (agenda    . 5)))
-
-  (dashboard-setup-startup-hook)
-  (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
-  :preface
-  (defun ju/dashboard-mode-hook--visual-adjustments nil
-    (hl-line-mode)
-    (visual-fill-column-mode)
-    (gsetq-local visual-fill-column-width 70)))
-
-(use-package save-place
-  :elpaca nil
-  :ghook 'elpaca-after-init-hook
-  :custom
-  (save-place-file (concat cache-dir "saveplace")))
-
 (use-package savehist
+  :ghook ('pre-command-hook nil nil nil t)
   :elpaca nil
-  :hook ((after-init-hook . savehist-mode)
-         (after-init-hook . save-place-mode))
+  :demand t
+  :ensure t
   :custom
   (savehist-file (concat cache-dir "savehist-backup"))
+  (save-place-file (concat cache-dir "saveplace"))
   :config
-  (add-function :after after-focus-change-function
-                #'savehist-save)
-
-  (gsetq history-length t
+  (savehist-mode 1)
+  (auto-save-mode 1)
+  (save-place-mode 1)
+  (gsetq history-length 3000
          history-delete-duplicates t
          savehist-autosave-interval nil
          savehist-save-minibuffer-history t
@@ -92,6 +53,12 @@
            mark-ring global-mark-ring       ; persist marks
            search-ring regexp-search-ring))
 
+  (gsetq auto-save-default t
+        auto-save-include-big-deletions t
+        auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
+        auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
+
+  (add-hook 'kill-emacs-hook #'savehist-save)
   (add-hook! 'savehist-save-hook
     (defun savehist-remove-unprintable-registers-h ()
       "Remove unwriteable registers (e.g. containing window configurations).
@@ -113,14 +80,6 @@ the unwritable tidbits."
                      if (stringp item)
                      collect (cons reg (substring-no-properties item))
                      else collect (cons reg item))))))
-
-
-(setq auto-save-default t
-      auto-save-include-big-deletions t
-      auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
-      auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
-
-(auto-save-mode)
 
 (general-with-package 'compile
   (require 'general)
@@ -160,18 +119,31 @@ the unwritable tidbits."
     "v" #'helpful-variable
     "k" #'helpful-key
     "o" #'helpful-symbol)
+  (general-def helpful-mode
+    :definer 'minor-mode
+    "q" #'quit-window)
   :init
   ;; using this instead of binding them directly allows taking an alternate action
   ;; without also opening the helpful buffer
   (setq counsel-describe-function-function #'helpful-callable
         counsel-describe-variable-function #'helpful-variable)
   :config
-  (general-def helpful-mode
-    :definer 'minor-mode
-    "q" #'quit-window)
   (noct-handle-popup help-mode)
   (noct-handle-popup (rx "*Help*"))
   (noct-handle-popup helpful-mode))
+
+(use-package emms
+  :config
+  (emms-all)
+  (gsetq emms-source-file-default-directory "~/Music"
+         emms-info-asynchronously t
+         emms-browser-covers #'emms-browser-cache-thumbnail-async
+         emms-show-format "♪ %s")
+
+  (if (executable-find "mplayer")
+      (setq emms-player-list '(emms-player-mplayer))
+    (emms-default-players))
+  (global-key "M-7" #'emms-smart-browse))
 
 (use-package gcmh
   :ghook ('pre-command-hook nil nil nil t)
@@ -199,6 +171,7 @@ the unwritable tidbits."
                           ".*-autoloads\\.el\\'" "[/\\]\\.elpa/"))
 
   (setq recentf-auto-cleanup (if (daemonp) 300))
+  (add-hook 'kill-emacs-hook #'recentf-save-list)
   (add-hook 'kill-emacs-hook #'recentf-cleanup))
 
 (use-package clipetty
@@ -228,16 +201,14 @@ the unwritable tidbits."
         which-key-min-display-lines 6
         which-key-side-window-slot -10
         which-key-sort-uppercase-first nil)
-
   (which-key-mode))
 
 (use-package ibuffer
   :elpaca nil
-  :init
-  (require '+ibuffer)
+  :init (require '+ibuffer)
   :general
   (leader/buffer "i" #'ibuffer)
-  ('ibuffer-mode-map
+  (general-def 'ibuffer-mode-map
    "<tab>" #'ibuffer-toggle-filter-group
    "q" #'kill-this-buffer)
   :config
@@ -309,6 +280,10 @@ the unwritable tidbits."
     "RET" #'vterm-send-return)
   :config
 
+  (general-with 'exwm
+    (global-set-key!
+      "s-<return>" #'vterm))
+
   (general-with 'evil
     (general-def 'insert 'vterm-mode-map
       "<escape>" (lookup-key evil-insert-state-map (kbd "<escape>"))))
@@ -318,6 +293,8 @@ the unwritable tidbits."
         vterm-max-scrollback 10000
         vterm-use-vterm-prompt-detection-method t)
   (noct-handle-popup "*vterm*"))
+
+(use-package eat)
 
 (use-package vterm-toggle
   :general

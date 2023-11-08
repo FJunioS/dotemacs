@@ -49,9 +49,12 @@
          evil-motion-state-modes nil))
 
 (use-package evil-commentary
+  :after evil
   :config (evil-commentary-mode))
 
-(use-package evil-surround)
+(use-package evil-surround
+  :after evil
+  :config (evil-surround-mode))
 
 (use-package evil-matchit
   :after evil
@@ -59,16 +62,19 @@
   (global-evil-matchit-mode))
 
 (use-package evil-visualstar
+  :after evil
   :config (global-evil-visualstar-mode))
 
 (use-package evil-visual-mark-mode
-  :defer 3
+  :after evil
   :config
   (evil-visual-mark-mode))
 
-(use-package evil-indent-textobject)
+(use-package evil-indent-textobject
+  :after evil)
 
 (use-package evil-args
+  :after evil
   :config
   ;; bind evil-args text objects
   (define-key evil-inner-text-objects-map "a" 'evil-inner-arg)

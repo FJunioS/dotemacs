@@ -5,13 +5,24 @@
 ;;; Code:
 (require 'core-packages)
 (require 'core-lib)
+
+;; Modernise Org mode interface
+(use-package olivetti
+  :demand t
+  :ghook '(org-mode-hook text-mode-hook))
+
+(use-package denote
+  :config
+  (gsetq denote-directory user-notes-dir
+         denote-known-keywords '("rust" "emacs" "computer-science""philosophy" "politics" "economics")))
+
 (use-package org
   :elpaca '(org :type built-in)
   :general
   ("C-c a" #'org-agenda)
   (leader/agenda
     "l" '(org-agenda-list :wk "week List"))
-  ('normal 'org-mode-map
+  (general-def 'normal 'org-mode-map
            "C-t" #'+org-toggle-todo-and-fold
            "TAB" #'org-cycle
            "K" #'org-move-subtree-up
@@ -19,12 +30,13 @@
            "L" #'org-demote-subtree
            "H" #'org-promote-subtree
            "SPC '" #'org-edit-src-code)
-  ('normal 'org-src-mode-map
+  (general-def 'normal 'org-src-mode-map
            "SPC '" #'org-edit-src-exit
            "SPC k" #'org-edit-src-abort)
-  ('org-mode-map
+  (general-def 'org-mode-map
    "C-c C-d" #'+org-toggle-todo-and-fold)
   :config
+  (gsetq org-capture-bookmark nil)
   (setq require-final-newline t)
   (setq org-directory (expand user-notes-dir)
         org-default-notes-file (expand "todo.org" user-notes-dir))
@@ -152,14 +164,14 @@
 (use-package org-noter)
 (use-package org-drill)
 (use-package org-appear
-  :hook (org-mode-hook . org-appear-mode))
+  :ghook 'org-mode)
+
 (defvar emacs-assets-dir (expand "assets/" emacs-dir))
 
 (use-package org-pomodoro
   :commands (org-pomodoro-start org-pomodoro)
   :config
-  ;; Run timer again after finishing
-  (add-hook 'org-pomodoro-break-finished-hook #'(lambda () (run-with-timer 5 nil #'org-pomodoro-start)))
+
   ;; Send visual notification when a timer ends
   (setq
    alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
@@ -169,8 +181,8 @@
          org-pomodoro-finished-sound (expand "bells.wav" emacs-assets-dir)
          org-pomodoro-overtime-sound (expand "bells.wav" emacs-assets-dir)
          org-pomodoro-long-break-sound (expand "singing-bowl.wav" emacs-assets-dir)
-         org-pomodoro-short-break-sound (expand "singing-bowl.wav" emacs-assets-dir))
-  org-pomodoro-clock-break t)
+         org-pomodoro-short-break-sound (expand "singing-bowl.wav" emacs-assets-dir)
+         org-pomodoro-clock-break t))
 
 (use-package org-journal
   :general

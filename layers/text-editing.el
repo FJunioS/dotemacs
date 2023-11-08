@@ -117,21 +117,9 @@
     ("[ ]"   . ? )
     ("[X]"   . ? )
     ("[-]"   . "" )
-    ("#+roam_tags:" . ? )
-    ("#+filetags:"  . ? )
-    ("#+name:"      . ? )
     ("#+results:"   . ? )
-    ("#+header:"    . ? )
-    ("#+author:"    . ? )
-    ("#+html_head:" . ? )
-    ("#+subtitle:"  . ? )
-    ("#+title:"     . ?. )
     ("#+begin_src"  . ? )
     ("#+end_src"    . ?∎ )
-    (":effort:"     . ? )
-    ("scheduled:"   . ? )
-    ("deadline:"    . ? )
-    (":properties:" . ?⚙)
     (":end:"        . ?―)))
 
 ;; Up-case all keys so "begin_src" and "BEGIN_SRC" has the same icon
@@ -151,6 +139,9 @@
   (setq prettify-symbols-unprettify-at-point 'right-edge))
 
 (add-hook! 'org-mode-hook #'org-prettify-mode)
+
+(use-package artbollocks-mode
+  :ghook '(org-mode-hook text-mode-hook))
 
 (use-package jinx
   :init
