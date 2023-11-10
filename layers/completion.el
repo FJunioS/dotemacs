@@ -3,8 +3,7 @@
 (use-package yasnippet
   :init (yas-global-mode)
   :general
-  (leader/yasnippet
-    "" nil
+  (general-def :prefix "C-c y"
     "i" #'(yas-insert-snippet :wk "Insert snippet")
     "n" #'(yas-new-snippet :wk "New snippet")
     "e" #'(yas-visit-snippet-file :wk "Edit snippet"))
@@ -23,6 +22,7 @@
   'prog-mode-hook
   'shell-mode-hook
   'eshell-mode-hook
+  'eat-mode-hook
   'eglot-managed-mode-hook
 
   :config
@@ -43,17 +43,14 @@
         corfu-quit-no-match t
         corfu-auto-prefix 3)
 
-  (def 'insert "C-k" nil)
-
-  (imap "C-SPC" #'completion-at-point)
-  (general-def 'corfu-map
+  (general-def corfu-map
     "C-SPC" #'corfu-insert-separator
     "C-i" #'corfu-insert
-    "C-j" #'corfu-next
-    "C-k" #'corfu-previous
-    "C-l" #'corfu-complete
-    "C-u" #'corfu-scroll-down
-    "C-d" #'corfu-scroll-up
+    "C-n" #'corfu-next
+    "C-p" #'corfu-previous
+    "C-j" #'corfu-complete
+    "C-M-n" #'corfu-scroll-down
+    "C-M-p" #'corfu-scroll-up
     "TAB" #'corfu-complete
     "RET" #'(lambda () (interactive)
               (corfu-complete)
@@ -143,10 +140,6 @@
 (use-package consult
   :elpaca (consult :files (:defaults "consult-*"))
   :general
-  (leader
-    "SPC" #'switch-to-buffer)
-  (leader/system
-    "s" #'switch-to-buffer)
   ("C-s"     #'consult-line
    "M-s"     #'consult-buffer
    "C-x C-r" #'consult-recent-file)
@@ -235,22 +228,20 @@ DEFS is a plist associating completion categories to commands."
   :ensure t
   :defer 1
   :general
-  (nmap "?" #'vertico-repeat)
   (general-def 'vertico-map
     "." #'vertico-repeat-last
     "," #'vertico-repeat-select
-    "C-l" #'vertico-directory-enter
-    "C-j" #'vertico-next
     "C-h" (cmds! (eq 'file (vertico--metadata-get 'category)) #'vertico-directory-up)
-    "C-k" #'vertico-previous
+    "C-j" #'vertico-directory-enter
+    "C-n" #'vertico-next
+    "C-p" #'vertico-previous
     "C-i" #'vertico-insert
     "C-o" #'vertico-first
-    "C-u" #'vertico-scroll-down
-    "C-d" #'vertico-scroll-up
+    "C-M-n" #'vertico-scroll-down
+    "C-M-p" #'vertico-scroll-up
     "<tab>" #'vertico-insert
     "<next>" #'vertico-scroll-up
     "<prior>" #'vertico-scroll-down
-    "<escape>" #'escape
     "<return>" #'vertico-directory-enter
     "<backspace>" #'vertico-directory-delete-char
     "C-<backspace>" #'vertico-directory-delete-word)
@@ -265,7 +256,6 @@ DEFS is a plist associating completion categories to commands."
   (vertico-multiform-mode)
   (gsetq vertico-buffer-display-action '(display-buffer-reuse-window)) ; Default
   (gsetq vertico-sort-function #'sort-directories-first)
-
   (gsetq vertico-multiform-commands
         '((describe-symbol (vertico-sort-function . vertico-sort-alpha))))
   (gsetq vertico-multiform-categories
@@ -363,7 +353,7 @@ DEFS is a plist associating completion categories to commands."
   :ensure t
   :general
   ("C-;" #'embark-dwim
-   "C-." #'embark-act)
+   "M-." #'embark-act)
   (:keymaps ju//minibuffer-maps
             "C-]" #'embark-act
             "C-;" #'embark-dwim

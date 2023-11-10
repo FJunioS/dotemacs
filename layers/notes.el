@@ -6,39 +6,82 @@
 (require 'core-packages)
 (require 'core-lib)
 
+;; Configure Elfeed
+(use-package elfeed
+  :config
+  (leader :prefix "r"
+    "" '(:ignore t :wk "Readers")
+    "e" #'elfeed)
+
+  (gsetq elfeed-db-directory (concat cache-dir "elfeed/")
+         elfeed-show-entry-switch 'display-buffer))
+
+;; Denote extensions
+(use-package consult-notes
+  :commands (consult-notes
+             consult-notes-search-in-all-notes)
+  :bind (("C-c nf" . consult-notes)
+         ("C-c ns" . consult-notes-search-in-all-notes)))
+
+;; Easy insertion of weblinks
+(use-package org-web-tools)
+
+(use-package persistent-scratch
+  :hook
+  (after-init . persistent-scratch-setup-default)
+  :init
+  (persistent-scratch-setup-default)
+  (persistent-scratch-autosave-mode)
+  :general
+  ("C-c x r" #'scratch-buffer))
+
 ;; Modernise Org mode interface
 (use-package olivetti
   :demand t
   :ghook '(org-mode-hook text-mode-hook))
 
 (use-package denote
-  :config
-  (gsetq denote-directory user-notes-dir
-         denote-known-keywords '("rust" "emacs" "computer-science""philosophy" "politics" "economics")))
+  :init
+  (require 'denote-org-dblock)
+  (denote-rename-buffer-mode t)
+  :hook
+  (dired-mode . denote-dired-mode)
+  :custom-face
+  (denote-faces-link ((t (:slant italic))))
+  :custom
+  (denote-directory user-notes-dir)
+  (denote-known-keywords '("rust"
+                           "emacs"
+                           "computer-science"
+                           "philosophy"
+                           "politics"
+                           "economics"))
+  :bind
+  (("C-c w n" . denote-create-note)
+   ("C-c w j" . denote-date)
+   ("C-c w i" . denote-link-or-create)
+   ("C-c w l" . denote-find-link)
+   ("C-c w b" . denote-find-backlink)
+   ("C-c w D" . denote-org-dblock-insert-links)
+   ("C-c w r" . denote-rename-file-using-front-matter)
+   ("C-c w R" . denote-rename-file)
+   ("C-c w k" . denote-keywords-add)
+   ("C-c w K" . denote-keywords-remove)))
+
 
 (use-package org
   :elpaca '(org :type built-in)
   :general
-  ("C-c a" #'org-agenda)
-  (leader/agenda
-    "l" '(org-agenda-list :wk "week List"))
-  (general-def 'normal 'org-mode-map
-           "C-t" #'+org-toggle-todo-and-fold
-           "TAB" #'org-cycle
-           "K" #'org-move-subtree-up
-           "J" #'org-move-subtree-down
-           "L" #'org-demote-subtree
-           "H" #'org-promote-subtree
-           "SPC '" #'org-edit-src-code)
-  (general-def 'normal 'org-src-mode-map
-           "SPC '" #'org-edit-src-exit
-           "SPC k" #'org-edit-src-abort)
+  ("C-c aa" #'org-agenda)
+  ("C-c al" '(org-agenda-list :wk "week List"))
   (general-def 'org-mode-map
-   "C-c C-d" #'+org-toggle-todo-and-fold)
+           "C-c C-d" #'+org-toggle-todo-and-fold
+           "TAB" #'org-cycle)
   :config
-  (gsetq org-capture-bookmark nil)
+  (setq org-capture-bookmark nil)
   (setq require-final-newline t)
   (setq org-directory (expand user-notes-dir)
+        consult-notes-file-dir-sources `(("Notes" "n" ,user-notes-dir))
         org-default-notes-file (expand "todo.org" user-notes-dir))
 
   (require '+org)
@@ -110,7 +153,7 @@
            ("blog" . ?b)
            ("idea" . ?i)))
 
-  (gsetq org-todo-keywords
+  (setq org-todo-keywords
          '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
            (sequence "EVENT(e)" "|" "TRYST(y)")
            (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)"))
@@ -164,20 +207,18 @@
 (use-package org-noter)
 (use-package org-drill)
 (use-package org-appear
-  :ghook 'org-mode)
+  :hook (org-mode . org-appear-mode))
 
 (defvar emacs-assets-dir (expand "assets/" emacs-dir))
 
 (use-package org-pomodoro
   :commands (org-pomodoro-start org-pomodoro)
   :config
-
-  ;; Send visual notification when a timer ends
   (setq
    alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
-  (gsetq org-pomodoro-format "%s"
+  (setq org-pomodoro-format "%s"
          org-pomodoro-length 0.1
-         org-pomodoro-start-sound (expand "bells.wav" emacs-assets-dir)
+         Org-pomodoro-start-sound (expand "bells.wav" emacs-assets-dir)
          org-pomodoro-finished-sound (expand "bells.wav" emacs-assets-dir)
          org-pomodoro-overtime-sound (expand "bells.wav" emacs-assets-dir)
          org-pomodoro-long-break-sound (expand "singing-bowl.wav" emacs-assets-dir)
@@ -186,9 +227,8 @@
 
 (use-package org-journal
   :general
-  (leader/notes
-    "t" '(org-journal-open-current-journal-file :wk "Today's journal")
-    "o" '(org-journal-new-entry :wk "Open journal"))
+  ("C-c nt" '(org-journal-open-current-journal-file :wk "Today's journal")
+   "C-c no" '(org-journal-new-entry :wk "Open journal"))
   :config
   (setq
    org-journal-date-prefix "#+title: "
@@ -197,7 +237,7 @@
    org-journal-date-format "%A, %d %B %Y"))
 
 (use-package org-superstar
-  :ghook 'org-mode-hook
+  :hook (org-mode .  org-superstar-mode)
   :custom
   (set-face-attribute 'org-superstar-item nil :height 0.8)
   (set-face-attribute 'org-superstar-header-bullet nil :height 0.8)
@@ -213,48 +253,6 @@
   ;; enable in markdown, too
   (add-hook 'markdown-mode-hook 'toc-org-mode))
 
-(use-package org-roam
-  :general
-  (leader/notes
-    "n" '(org-roam-capture :wk "Capture")
-    "f" '(org-roam-node-find :wk "Find node"))
-  (leader/mode 'org-mode-map
-	  "a" #'org-roam-alias-add
-	  "r" #'org-roam-ref-add)
-  :config
-  (setq org-roam-db-gc-threshold most-positive-fixnum)
-  (setq org-roam-directory (expand user-notes-dir))
-  (setq org-id-extra-files (org-roam--list-files org-roam-directory))
-
-  (setq org-roam-capture-templates
-        '(("d" "default" plain "%?"
-           :immediate-finish t
-           :if-new (file+head "${slug}.org"
-                              "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
-           :unnarrowed t)
-          ("t" "temp" plain "%?"
-           :if-new(file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                             "#+TITLE: ${title}\n#+lastmod: Time-stamp: <>\n\n")
-           :immediate-finish t
-           :unnarrowed t)
-          ("p" "private" plain "%?"
-           :if-new (file+head "${slug}-private.org"
-                              "#+TITLE: ${title}\n")
-           :immediate-finish t
-           :unnarrowed t)))
-
-  (setq org-roam-node-display-template
-        (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
-
-  (setq org-roam-completion-system 'vertico
-        org-roam-completion-everywhere t
-        org-roam-mode-sections
-        '(#'org-roam-backlinks-section
-          #'org-roam-reflinks-section
-          #'org-roam-unlinked-references-section))
-
-  (org-roam-db-autosync-mode))
-
 (use-package org-download
   :config
   (setq org-download-display-inline-images t
@@ -264,99 +262,21 @@
 
 (setq org-capture-templates
       '((?n "Notes" entry
-            (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
+            (file "inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
         (?m "Meeting notes" entry
-            (file "~/sync/notes/meetings.org") "* TODO %^{Title} %t\n- %?")
+            (file "meetings.org") "* TODO %^{Title} %t\n- %?")
         (?t "TODO" entry
-            (file "~/sync/notes/inbox.org") "* TODO %^{Title}")
+            (file "inbox.org") "* TODO %^{Title}")
         (?e "Event" entry
-            (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
+            (file "calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
         (?w "Work TODO" entry
-            (file "~/sync/notes/work.org") "* TODO %^{Title}")))
-
-;; Calendar
-(with-eval-after-load 'evil-mode
-  (evil-set-initial-state 'calendar-mode 'normal))
+            (file "work.org") "* TODO %^{Title}")))
 
 (general-def 'org-read-date-minibuffer-local-map
   "J" (general-simulate-key "S-<down>")
   "K" (general-simulate-key "S-<up>")
   "L" (general-simulate-key "S-<right>")
   "H" (general-simulate-key "S-<left>"))
-
-(general-def 'normal 'calendar-mode-map
-  "b" 'calendar-backward-day
-  "h" 'calendar-backward-day
-  "j" 'calendar-forward-week
-  "k" 'calendar-backward-week
-  "l" 'calendar-forward-day
-  "w" 'calendar-forward-day
-  "0" 'calendar-beginning-of-week
-  "^" 'calendar-beginning-of-week
-  "$" 'calendar-end-of-week
-  "-" 'calendar-end-of-week
-  "[[" 'calendar-backward-year
-  "]]" 'calendar-forward-year
-  "M-<" 'calendar-beginning-of-year
-  "M->" 'calendar-end-of-year
-  "(" 'calendar-beginning-of-month
-  ")" 'calendar-end-of-month
-  "SPC" 'scroll-other-window
-  "S-SPC" 'scroll-other-window-down
-  "<delete>" 'scroll-other-window-down
-  "RET" 'org-calendar-select
-  "<" 'calendar-scroll-right
-  ">" 'calendar-scroll-left
-  "C-b" 'calendar-scroll-right-three-months
-  "C-f" 'calendar-scroll-left-three-months
-  "{" 'calendar-backward-month
-  "}" 'calendar-forward-month
-  "C-k" 'calendar-backward-month
-  "C-h" 'calendar-backward-month
-  "C-j" 'calendar-forward-month
-  "C-l" 'calendar-forward-month
-  "gk" 'calendar-backward-month
-  "gj" 'calendar-forward-month
-
-  ;; visual
-  "v" 'calendar-set-mark
-
-  ;; goto
-  "." 'calendar-goto-today
-  "o" 'calendar-other-month
-  "gd" 'calendar-goto-date ; "gd" in evil-org-agenda, "gd" in Emacs.
-  "gD" 'calendar-other-month
-
-  ;; diary
-  "D" 'diary-view-other-diary-entries
-  "d" 'diary-view-entries
-  "m" 'diary-mark-entries
-  "s" 'diary-show-all-entries
-
-  ;; appointment
-  "Aa" 'appt-add
-  "Ad" 'appt-delete
-
-  "u" 'calendar-unmark
-  "x" 'calendar-mark-holidays
-
-  ;; show
-  "gm" 'calendar-lunar-phases ; "gm" in evil-org-agenda. TODO: Shadows calendar-mayan.
-  "gs" 'calendar-sunrise-sunset ; "gs" in evil-org-agenda
-  "gh" 'calendar-list-holidays ; "gh" in evil-org-agenda. TODO: Shadows calendar-hebrew.
-  "gc" 'org-calendar-goto-agenda ; "gc" in evil-org-agenda. TODO: Shadows calendar-iso.
-  "a" 'calendar-list-holidays
-  "r" 'calendar-cursor-holidays
-
-  ;; refresh
-  "gr" 'calendar-redraw
-
-  "g?" 'calendar-goto-info-node
-  "?" 'calendar-goto-info-node ; Search is not very useful.
-  "M-=" 'calendar-count-days-region
-
-  ;; quit
-  "q" 'calendar-exit)
 
 (provide 'notes)
 ;;; notes.el ends here

@@ -11,6 +11,14 @@
   (when (member "Fantasque Sans Mono" (font-family-list))
     (set-frame-font "Fantasque Sans Mono-16" t t)))
 
+(use-package mini-echo
+  :init
+  ;; Avoid duplicating mini-echo instances
+  (mini-echo-mode -1)
+  (mini-echo-mode +1)
+  :custom
+  (mini-echo-right-padding 10))
+
 (use-package highlight-escape-sequences
   :after 'modus-themes
   :init

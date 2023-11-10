@@ -23,6 +23,15 @@
                       hungry-delete-forward)
                     :around #'NOP-kill-new)
 
+(use-package indent-guide
+  :config
+  (add-hook 'prog-mode 'indent-guide-mode)
+  (set-face-background 'indent-guide-face "unspecified"))
+
+(setq meow-keypad-leader-dispatch "C-c")
+
+
+
 (use-package whitespace
   :elpaca nil
   :demand t
@@ -34,31 +43,28 @@
                 newline indentation empty space-after-tab space-mark
                 tab-mark newline-mark missing-newline-at-eof)
          ;; use `fill-column' value
-         whitespace-line-column 120
+         whitespace-line-column 80
+         show-trailing-whitespace t
          whitespace-display-mappings
-         '((tab-mark ?\t [?\xBB ?\t])
-           (newline-mark ?\n [?¬ ?\n])
-           (trailing-mark ?\n [?¬ ?\n])
-           (space-mark ?\xB7 [?·] [?.])
-           (space-mark ?\xA0 [?\·] [?_])))
+         '((tab-mark      ?\t [?» ?\t])
+           (space-mark 32 [?\s] [46])
+           (newline-mark  ?\n [?¬ ?\n]))))
 
   (defun add-lines-tail ()
     "Add lines-tail to `whitespace-style' and refresh `whitespace-mode'."
     (setq-local whitespace-style (cons 'lines-tail whitespace-style))
-    (whitespace-mode))
-
+    (whitespace-mode 1))
   (general-add-hook 'prog-mode-hook #'add-lines-tail)
-
-  (global-whitespace-mode)
+  (add-hook 'prog-mode 'whitespace-mode)
+  (add-hook 'text-mode 'whitespace-mode)
+  (add-hook 'org-mode 'whitespace-mode)
 
   (defun manual-save-buffer ()
     (interactive)
     (call-interactively #'delete-trailing-whitespace)
     (call-interactively #'save-buffer))
 
-  (general-def 'normal
-       "fd" #'manual-save-buffer
-       "C-x C-s" #'manual-save-buffer))
+  (general-def "C-x C-s" #'manual-save-buffer)
 
 (setq prettify-symbols-unprettify-at-point 'right-edge)
 
@@ -105,6 +111,89 @@
   (prettify-symbols-mode +1)
   (setq prettify-symbols-unprettify-at-point 'right-edge))
 
+(use-package meow
+  :init
+  (meow-global-mode)
+  (defun meow-setup ()
+    (meow-leader-define-key
+   '("?" . meow-cheatsheet))
+  (meow-motion-overwrite-define-key
+   ;; custom keybinding for motion state
+   '("<escape>" . ignore))
+  (meow-normal-define-key
+   '("?" . meow-cheatsheet)
+   '("*" . meow-expand-0)
+   '("=" . meow-expand-9)
+   '("!" . meow-expand-8)
+   '("[" . meow-expand-7)
+   '("]" . meow-expand-6)
+   '("{" . meow-expand-5)
+   '("+" . meow-expand-4)
+   '("}" . meow-expand-3)
+   '(")" . meow-expand-2)
+   '("(" . meow-expand-1)
+   '("1" . digit-argument)
+   '("2" . digit-argument)
+   '("3" . digit-argument)
+   '("4" . digit-argument)
+   '("5" . digit-argument)
+   '("6" . digit-argument)
+   '("7" . digit-argument)
+   '("8" . digit-argument)
+   '("9" . digit-argument)
+   '("0" . digit-argument)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("<" . meow-beginning-of-thing)
+   '(">" . meow-end-of-thing)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-line)
+   '("E" . meow-goto-line)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-join)
+   '("k" . meow-kill)
+   '("l" . meow-till)
+   '("m" . meow-mark-word)
+   '("M" . meow-mark-symbol)
+   '("n" . meow-next)
+   '("N" . meow-next-expand)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-prev)
+   '("P" . meow-prev-expand)
+   '("q" . meow-quit)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-search)
+   '("t" . meow-right)
+   '("T" . meow-right-expand)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-next-word)
+   '("W" . meow-next-symbol)
+   '("x" . meow-save)
+   '("X" . meow-sync-grab)
+   '("y" . meow-yank)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore)))
+  (meow-setup)
+)
 (add-hook! '(prog-mode-hook
              text-mode-hook) #'default-prettify-mode)
 
@@ -139,6 +228,10 @@
   (setq prettify-symbols-unprettify-at-point 'right-edge))
 
 (add-hook! 'org-mode-hook #'org-prettify-mode)
+(use-package image-roll
+  :elpaca (:host github :repo "dalanicolai/image-roll.el")
+  :config
+  (add-hook 'pdf-view-mode 'image-roll-autoloads))
 
 (use-package artbollocks-mode
   :ghook '(org-mode-hook text-mode-hook))
@@ -147,6 +240,6 @@
   :init
   (noct-after-buffer (global-jinx-mode))
   :config
-  (global-key "C-." #'jinx-correct))
+  (global-set-key (kbd "C-.") #'jinx-correct))
 
 (provide 'text-editing)

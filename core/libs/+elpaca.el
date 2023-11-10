@@ -1,9 +1,6 @@
-;;; core-packages.el ---  desc  -*- lexical-binding: t; -*-
+;;; +elpaca.el ---  desc  -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
-(require 'core-lib)
-(require 'core-load-paths)
-
 (defvar elpaca-installer-version 0.5)
 (defvar elpaca-directory (expand-file-name "elpaca/" cache-dir))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
@@ -66,101 +63,5 @@
   ;; entire init file before compiling already
   (setq use-package-always-defer t))
 
-(elpaca-wait)
-
-(use-package org :elpaca nil)
-
-(use-package blackout :demand t)
-(use-package diminish :demand t)
-(use-package general
-  :demand t
-  :ensure t
-  :config
-(general-auto-unbind-keys)
-(defalias 'def #'general-def)
-(defalias 'kbd! #'general-simulate-key)
-(defalias 'gsetq #'general-setq)
-(defalias 'gsetq-default #'general-setq-default)
-(defalias 'gsetq-local #'general-setq-local))
-
-(use-package async
-  :demand t
-  :ensure t
-  :config
-  (async-bytecomp-package-mode 1))
-
-(use-package hydra
-  :demand t
-  :ensure t)
-
-(use-package auth-source
-  :no-require t
-  :ensure t
-  :demand t
-  :elpaca nil
-  :config (setq auth-sources '("~/.authinfo.gpg" "~/.authinfo" "~/.netrc")))
-
-(use-package exwm
-  :demand t
-  :config
-  (exwm-enable)
-  (server-start)
-  (require '+exwm))
-
-(elpaca-wait)
-
-(use-package desktop-environment
-  :ensure t
-  :after exwm
-  :config
-  (desktop-environment-mode)
-
-  :custom
-  (desktop-environment-brightness-small-increment "2%+")
-  (desktop-environment-brightness-small-decrement "2%-")
-
-  (desktop-environment-brightness-normal-increment "5%+")
-  (desktop-environment-brightness-normal-decrement "5%-")
-
-  :config
-  (defhydra hydra-volume (:timeout 4)
-    "Configure Volume"
-    ("p" desktop-environment-volume-normal-increment "up")
-    ("n" desktop-environment-volume-normal-decrement "down")
-    ("q" nil "quit" :exit t))
-
-  ;; This hydra function allows for control of brightness
-  (defhydra hydra-brightness (:timeout 4)
-    "Configure Brightness"
-    ("p" desktop-environment-brightness-increment "up")
-    ("n" desktop-environment-brightness-decrement "down")
-    ("q" nil "quit" :exit t))
-
-  (general-def "C-c C-s s"
-    "" '(:ignore t :wk "System")
-    "v" #'hydra-volume/body
-    "b" #'hydra-brightness/body))
-
-;; Launch apps with completion on point interface
-(use-package app-launcher
-  :after exwm
-  :elpaca (:host github :repo "SebastienWae/app-launcher"))
-
-(use-package pinentry
-  :ensure t
-  :config
-    (setq epg-gpg-program "gpg2")  ;; not necessary
-    (require 'epa-file)
-    (epa-file-enable)
-    (setq epa-pinentry-mode 'loopback)
-    (setq epg-pinentry-mode 'loopback)
-
-    (setenv "GPG_AGENT_INFO" nil)  ;; use emacs pinentry
-    (setq auth-source-debug t)
-    (pinentry-start)
-
-    (require 'org-crypt)
-    (org-crypt-use-before-save-magic))
-
-(provide 'core-packages)
-;;; core-packages.el ends here
+(provide '+elpaca)
+;;; +elpaca.el ends here
