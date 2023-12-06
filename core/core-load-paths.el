@@ -12,7 +12,7 @@
   "Expand relative FILE to `user-emacs-directory'."
   (expand-file-name file (file-name-directory emacs-dir)))
 
-(defvar user-notes-dir (expand "~/sync/notes/"))
+(defvar user-notes-dir (expand "~/notes/"))
 
 ;; TODO: Move to org handler
 

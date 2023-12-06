@@ -3,7 +3,7 @@
 ;;; Code:
 
 (require 'ibuffer)
-(gsetq ibuffer-saved-filter-groups
+(csetq ibuffer-saved-filter-groups
       '(("default"
          ;; ("Modified" (predicate buffer-modified-p (current-buffer)))
          ("Dired" (mode . dired-mode))

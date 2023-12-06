@@ -39,24 +39,7 @@
 (dolist (path '("core/libs" "layers"))
   (add-to-list 'load-path (locate-user-emacs-file path)))
 
-(defgroup ju nil
-  "group of custom settings"
-  :group 'convenience
-  :prefix "ju-")
-
-(defgroup ju-core nil
-  "group of custom settings"
-  :group 'ju
-  :prefix "ju-core-")
-
-(define-widget 'ju-alist 'lazy
-  "Ju's alist type."
-  :type '(alist :key-type (or symbol (repeat symbol))
-                :value-type symbol))
-
-(defcustom ju-core-use-evil-mode
-  :group 'ju-core
-  :type 'boolean)
+(setq-default eldoc-mode -1)
 
 (require 'core-lib)
 (require 'core-load-paths)
@@ -100,6 +83,10 @@ tell you about it. Very annoying. This prevents that."
       auto-save-list-file-prefix (concat cache-dir "autosave/")
       tramp-auto-save-directory  (concat cache-dir "tramp-autosave/"))
 
+;; Bookmarks
+(setq bookmark-default-file (concat cache-dir "bookmarks"))
+(setq bookmark-save-flag 1)
+
 (defun init--enable-messages-buffer-after-init ()
   "Enable messaging after init and it doesn't populate message
   buffer with loading notification"
@@ -116,14 +103,10 @@ tell you about it. Very annoying. This prevents that."
       jka-compr-verbose init-file-debug)
 
 (setq-default abbrev-mode t)
-(setq case-fold-search t) ; Make searches case insensitive
+(setq case-fold-search t) ; Case insensitive searches
 (setq font-lock-maximum-decoration t)
 (setq global-auto-revert-non-file-buffers t)
 
-(delete-selection-mode) ; Delete selection when doing any action (e.g. paste)
-(global-auto-revert-mode)
-
-(repeat-mode)
 (setq set-mark-command-repeat-pop t)
 ;; stop describe-function from converting many quote characters in docstring
 (setq text-quoting-style 'grave)
@@ -132,10 +115,19 @@ tell you about it. Very annoying. This prevents that."
 (setq select-enable-clipboard t)
 (setq select-enable-primary t)  ; Mouse selection yanks
 
+;; Basic modes
 (electric-pair-mode 1)
-(global-subword-mode)
-
+(global-subword-mode 1)
+(global-auto-revert-mode 1)
+(winner-mode 1)
+(repeat-mode 1)
+(global-goto-address-mode 1)
+(delete-selection-mode 1)
 (global-visual-line-mode 1)
+(minibuffer-depth-indicate-mode 1)
+(blink-cursor-mode -1)
+(undelete-frame-mode 1) ; Emacs 29
+
 (add-hook! '(prog-mode-hook
              org-mode-hook
              text-mode-hook) #'hl-line-mode)
@@ -150,8 +142,7 @@ tell you about it. Very annoying. This prevents that."
     (apply orig-func args)))
 
 (setq enable-recursive-minibuffers t)
-(minibuffer-depth-indicate-mode)
-(blink-cursor-mode -1)
+
 (setq ring-bell-function 'ignore)
 
 (setq-default fill-column 80)
@@ -182,6 +173,7 @@ tell you about it. Very annoying. This prevents that."
               tab-width 4)
 (setq-hook! 'emacs-lisp-mode-hook
   tab-width 2)
+
 (setq message-log-max 10000)
 (setq kill-ring-max 300)
 (setq history-length 3000
@@ -197,8 +189,6 @@ tell you about it. Very annoying. This prevents that."
 (setq adaptive-fill-mode nil)
 (setq kill-do-not-save-duplicates t)
 (setq show-paren-style 'mixed)
-
-(undelete-frame-mode) ; Emacs 29
 
 ;; Emacs by default will warn you when you use some commands for the first time.
 (dolist (c '(narrow-to-region narrow-to-page upcase-region downcase-region
@@ -228,8 +218,8 @@ tell you about it. Very annoying. This prevents that."
 (require 'core-packages nil t)
 
 ;;; Allow non-floating resizing with mouse.
-(setq window-divider-default-bottom-width 2
-      window-divider-default-right-width 2)
+(setq window-divider-default-bottom-width 4
+      window-divider-default-right-width 4)
 (window-divider-mode)
 
 ;; Avoid packages store cache on emacs folder.
@@ -242,15 +232,14 @@ tell you about it. Very annoying. This prevents that."
     text-editing
     completion
     dir
-    langs)
-  "List of layers to load.")
+    langs
+    ui
+    git
+    notes
+    readers)
+  "list of layers to load.")
 (dolist (mod layers)
-  (require mod nil t))
-
-(defconst interactive-layers '(ui git notes readers)
-  "List of common layers that can be loaded with daemon load.")
-(dolist (mod interactive-layers)
-  (require mod nil t))
+  (require mod))
 
 (setq debug-on-error init-file-debug)
 (setq inhibit-message nil)

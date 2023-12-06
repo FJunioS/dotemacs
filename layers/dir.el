@@ -19,12 +19,12 @@
 
 (use-package dirvish
   :init
-  ;; (gsetq dired-omit-files
+  ;; (csetq dired-omit-files
   ;;        (concat dired-omit-files "\\|^\\..*$"))
   (dirvish-override-dired-mode)
 
   :config
-  (gsetq dired-kill-when-opening-new-dired-buffer nil
+  (csetq dired-kill-when-opening-new-dired-buffer nil
          dired-clean-confirm-killing-deleted-buffers nil
          dired-dwim-target t
          dired-recursive-copies 'always
@@ -33,19 +33,19 @@
 
   (setq dired-mouse-drag-files t) ; added in Emacs 29
   (setq mouse-drag-and-drop-region-cross-program t)
-  (gsetq dired-listing-switches
+  (csetq dired-listing-switches
          ;; -v - natural sort numbers
          ;; --almost-all - all except . and ..
          (concat "-l -v --almost-all --group-directories-first "
                  "--time-style=long-iso"))
 
-  (gsetq dirvish-quick-access-entries
+  (csetq dirvish-quick-access-entries
          '(("h" "~/"                          "Home")
            ("d" "~/Downloads/"                "Downloads")
            ("m" "/mnt/"                       "Drives")
            ("t" "~/.local/share/Trash/files/" "TrashCan")))
 
-  ;; (gsetq dired-listing-switches (string-join '("--all"
+  ;; (csetq dired-listing-switches (string-join '("--all"
   ;;                                              "--human-readable"
   ;;                                              "--time-style=long-iso"
   ;;                                              "--group-directories-first"
@@ -62,7 +62,7 @@
         (my/dir (lambda (path &optional dir)
                   (expand-file-name (file-name-as-directory path)
                                     (or dir user-emacs-directory)))))
-    (gsetq image-dired-thumb-size             150
+    (csetq image-dired-thumb-size             150
            image-dired-dir                    (funcall my/dir "dired-img")
            image-dired-db-file                (funcall my/file "dired-db.el")
            image-dired-gallery-dir            (funcall my/dir "gallery")
@@ -81,18 +81,18 @@
   (general-pushnew (cons (list "png" "jpg" "jpeg" "webp") (list "mvi" "%f"))
                    dirvish-open-with-programs)
 
-  (gsetq dirvish-yank-overwrite-existing-files 'never
+  (csetq dirvish-yank-overwrite-existing-files 'never
          dirvish-attributes '(all-the-icons file-size collapse vc-state)
          dirvish-yank-new-name-style 'append-to-filename
          dirvish-yank-new-name-style 'append-to-ext)
 
-  (gsetq dirvish-mode-line-position 'global
+  (csetq dirvish-mode-line-position 'global
          dirvish-mode-line-format '(" " file-modes " " file-link-number " " file-user ":" file-group " "
                                     symlink omit vc-info
                                     :right
                                     (sort yank index)))
 
-  ;; (gsetq dirvish-header-line-format
+  ;; (csetq dirvish-header-line-format
   ;;        '(:left (path symlink)
   ;;                :right (free-space))
   ;;        dirvish-layout-recipes

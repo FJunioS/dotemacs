@@ -6,9 +6,9 @@
 (require 'core-packages)
 
 (display-time-mode)
-(gsetq display-time-24hr-format t
-       display-time-day-and-date t
-       display-time-load-average-threshold nil)
+(csetq display-time-24hr-format t
+      display-time-day-and-date t
+      display-time-load-average-threshold nil)
 
 (use-package keychain-environment)
 
@@ -30,31 +30,45 @@
                     "Version Control")
 
 (use-package savehist
-  :ghook ('pre-command-hook nil nil nil t)
   :elpaca nil
   :demand t
   :ensure t
-  :custom
-  (savehist-file (concat cache-dir "savehist-backup"))
-  (save-place-file (concat cache-dir "saveplace"))
-  :config
+  :defer 0
+  :init
   (savehist-mode 1)
   (auto-save-mode 1)
   (save-place-mode 1)
-  (setq history-length 3000
+  :config
+  (csetq-default
+   savehist-file (concat cache-dir "savehist-backup")
+   save-place-file (concat cache-dir "saveplace"))
+  (csetq history-length 3000 ; from 300
+         search-ring-max 150 ; from 16
+         mark-ring-max 100
+         global-mark-ring-max 100
+         regexp-search-ring-max 100
+         kmacro-ring-max 100
          history-delete-duplicates t
          savehist-autosave-interval nil
          savehist-save-minibuffer-history t
          savehist-additional-variables
-         '(kill-ring                        ; persist clipboard
-           register-alist                   ; persist macros
-           mark-ring global-mark-ring       ; persist marks
-           search-ring regexp-search-ring))
+         '(kill-ring                    ; clipboard
+           register-alist               ; macros
+           mark-ring                    ; marks
+           global-mark-ring
+           compile-command              ; Compilation
+           compile-history
+           compilation-directory
+           shell-command-history        ; Commands
+           extended-command-history
+           search-ring                  ; Seaches
+           regexp-search-ring))
 
-  (setq auto-save-default t
-        auto-save-include-big-deletions t
-        auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
-        auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
+  (csetq-default
+   auto-save-default t
+   auto-save-include-big-deletions t
+   auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
+   auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
 
   (add-hook 'kill-emacs-hook #'savehist-save)
   (add-hook! 'savehist-save-hook
@@ -80,7 +94,7 @@ the unwritable tidbits."
                      else collect (cons reg item))))))
 
 (general-with-package 'compile
-  (setq
+  (csetq
    ;; save modified buffers without asking
    compilation-ask-about-save nil
    compilation-scroll-output 'first-error)
@@ -90,7 +104,7 @@ the unwritable tidbits."
     (require 'ansi-color)
     (when (eq major-mode 'compilation-mode)
       (ansi-color-apply-on-region compilation-filter-start (point-max))))
-  (general-add-hook 'compilation-filter-hook #'my-colorize-compilation-buffer)
+  (add-hook 'compilation-filter-hook #'my-colorize-compilation-buffer)
   (noct-handle-popup compilation-mode))
 
 (require 'zone-words)
@@ -106,7 +120,7 @@ the unwritable tidbits."
   (noct-handle-popup apropos-mode)
   :config
   (setq apropos-do-all t)
-  (general-def apropos-mode-map "q" #'quit-window))
+  (define-key apropos-mode-map "q" #'quit-window))
 
 (use-package helpful
   :general
@@ -119,6 +133,11 @@ the unwritable tidbits."
   (general-def helpful-mode
     :definer 'minor-mode
     "q" #'quit-window)
+  :init
+  ;; using this instead of binding them directly allows taking an alternate action
+  ;; without also opening the helpful buffer
+  (setq counsel-describe-function-function #'helpful-callable
+        counsel-describe-variable-function #'helpful-variable)
   :config
   (noct-handle-popup help-mode)
   (noct-handle-popup (rx "*Help*"))
@@ -127,7 +146,7 @@ the unwritable tidbits."
 (use-package emms
   :config
   (emms-all)
-  (gsetq emms-source-file-default-directory "~/Music"
+  (setq emms-source-file-default-directory "~/Music"
          emms-info-asynchronously t
          emms-browser-covers #'emms-browser-cache-thumbnail-async
          emms-show-format "♪ %s")
@@ -154,6 +173,8 @@ the unwritable tidbits."
   (recentf-save-file (concat cache-dir "recentf"))
   :general
   ("C-x C-r" #'recentf)
+  (leader/file
+    "r" #'recentf)
   :config
   (setq recentf-auto-cleanup nil
         recentf-max-saved-items 200)
@@ -167,10 +188,14 @@ the unwritable tidbits."
 (use-package clipetty
   :ensure t
   :init
+  ;; only need to load if create a terminal frame
+  ;; `global-clipetty-mode' will not cause issues if enabled for a server with
+  ;; both graphical and terminal frames
   (general-after-tty
     (global-clipetty-mode)))
 
 (use-package which-key
+  :defer 1
   :ghook ('pre-command-hook nil nil nil t)
   :general
   (leader/toggle "W" #'which-key-mode)
@@ -208,16 +233,22 @@ the unwritable tidbits."
         ibuffer-expert t
         ibuffer-show-empty-filter-groups nil))
 
-(use-package undo-tree
-  :general ("C-c U" #'undo-tree-visualize)
-  :diminish undo-tree-mode
-  :init (global-undo-tree-mode)
+(use-package vundo
   :config
-  (setq undo-tree-visualizer-timestamps t
-        undo-tree-visualizer-diff t
-        undo-tree-history-directory-alist (eval `'(("." . ,cache-dir)))))
+  (csetq vundo-glyph-alist vundo-unicode-symbols)
+  (set-face-attribute 'vundo-default nil :family "Symbola"))
 
 (use-package eat)
+
+;; Even coming together with Magit, it is nice to have this separately.
+(use-package transient)
+
+;;;###autoload
+(defun ju-restart ()
+  (interactive)
+  (start-process "emacsclient" nil "pkill"
+                 "-KILL" "emacs" "&&" "emacsclient" "-ca"))
+
 
 (provide 'essentials)
 ;;; essentials.el ends here

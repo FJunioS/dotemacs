@@ -4,48 +4,87 @@
 (require 'core-packages)
 (require 'core-lib)
 
-(general-def woman-node-map
-  "]]" 'WoMan-next-manpage
-  "[[" 'WoMan-previous-manpage
-  "r" 'woman-reformat-last-file) ; refresh
+(create-keymap leader)
+(create-keymap toggle)
 
-(define-key emacs-lisp-mode-map (kbd "C-c C-k") #'helpful-at-point)
-(define-key prog-mode-map (kbd "C-c C-k") #'eldoc-box-help-at-point)
+(global-set-key (kbd "C-c") leader-map)
 
-(general-def
-  "C-h =" #'describe-char
-  "M-k" #'kill-this-buffer
-  "M-o" #'evil-switch-to-windows-last-buffer)
+(define-key input-decode-map (kbd "C-[") [control-bracketleft])
+(define-key input-decode-map (kbd "ESC") [escape])
 
-(general-def :prefix "C-c"
-  "-" #'evil-window-split
-  "v" #'evil-window-vsplit)
+;; Disable arrow keys to force me to use emacs navigation
+(global-map "<left>" nil
+            "<right>" nil
+            "<up>" nil
+            "<down>" nil)
 
-(general-def :prefix "C-c f"
-  "f" #'find-file
-  "r" #'consult-recent-file
-  "d" #'manual-save-buffer
-  "o" '(:ignore t :wk "options")
-  "p" #'(lambda () (interactive) (consult-fd "~/.emacs.d/")))
+;; Most common actions
+(global-map "M-k" #'kill-this-buffer+
+            "C-," #'execute-extended-command
+            "C-\\" #'universal-argument
+            "C-u" #'delete-char
+            "M-u" #'kill-word
+            "M-'" #'save-buffer
+            "M-<right>" #'next-buffer
+            "M-<left>"  #'previous-buffer)
 
-(global-set-key (kbd "C-c tw") #'toggle-word-wrap)
+(map emacs-lisp-mode-map
+     "C-x C-e" #'+eval-region-or-sexp)
+
+(with-eval-after-load 'woman
+  (map woman-node-map
+       "]]" 'WoMan-next-manpage
+       "[[" 'WoMan-previous-manpage
+       "r" 'woman-reformat-last-file))
+
+(global-map
+ "<escape>" #'escape
+ "C-h =" #'describe-char
+ "M-k"   #'kill-this-buffer)
+
+(map leader-map
+     "*" #'delete-window
+     "(" #'delete-other-windows
+     "o" #'delete-other-windows
+     "-" #'split-window-below
+     "v" #'split-window-right)
+
+;;--------------------------------------------------
+(use-package avy
+  :ensure t
+  :init (global-map "C-u" 'avy-goto-char))
+;; (use-package repeat-help)
+;; (use-package smartparens
+;;   :ensure t
+;;   :config)
+
+;; (add-hook 'emacs-lisp-mode (lambda () (smartparens-mode))
 
 (use-package drag-stuff
   :init
   (drag-stuff-global-mode)
   :config
-  (drag-stuff-define-keys)
+  (global-key "M-<up>"   #'drag-stuff-up
+              "M-<down>" #'drag-stuff-down))
+
+(use-package evil-mc
+  :disabled t
   :general
-  ("M-K" #'drag-stuff-up
-   "M-J" #'drag-stuff-down))
+  (general-def 'visual 'evil-mc-key-map
+    "A" #'evil-mc-make-cursor-in-visual-selection-end
+    "I" #'evil-mc-make-cursor-in-visual-selection-beg)
+  :config
+  (global-evil-mc-mode))
 
 (use-package multiple-cursors)
 
 (use-package mwim
-  :defer t
-  :general
-  ("C-a" #'mwim-beginning-of-code-or-line
-    "C-e" #'mwim-end-of-code-or-line))
+  :ensure t
+  :init
+  (when (require 'mwim nil t)
+    (global-map
+     "C-a" #'mwim-beginning-of-code-or-line
+     "C-e" #'mwim-end-of-code-or-line)))
 
 (use-package hl-todo
   :config
@@ -58,13 +97,13 @@
                              (cl-gensym)))) ()
      ,(format "Insert %s on beginning and end between mark" sym)
      (interactive)
-     (let ((pos1 (region-beginning))
-           (pos2 (region-end)))
+     (let ((BEGIN (region-beginning))
+           (END (region-end)))
        (setq mark-active nil)
        (save-excursion
-         (goto-char pos1)
+         (goto-char BEGIN)
          (insert ,sym)
-         (goto-char (1+ pos2))
+         (goto-char (1+ END))
          (if (stringp ,ending)
              (insert ,ending)
            (insert ,sym)))
@@ -82,9 +121,21 @@
   "{" (wrap-region-with-symbol! "{" "}"))
 
 ;;; Xah Lee Keymaps:
-(defvar xah-brackets '("()" "[]" "{}" "<>")
+(defvar xah-brackets '("“”" "()" "[]" "{}" "<>"
+		                   "＜＞" "（）" "［］" "｛｝"
+		                   "⦅⦆" "〚〛" "⦃⦄" "‹›" "«»"
+		                   "「」" "〈〉" "《》" "【】"
+		                   "〔〕" "⦗⦘" "『』" "〖〗"
+		                   "〘〙" "｢｣" "⟦⟧" "⟨⟩" "⟪⟫"
+		                   "⟮⟯" "⟬⟭" "⌈⌉" "⌊⌋" "⦇⦈" "⦉⦊"
+		                   "❛❜" "❝❞" "❨❩" "❪❫" "❴❵"
+		                   "❬❭" "❮❯" "❰❱" "❲❳" "〈〉"
+		                   "⦑⦒" "⧼⧽" "﹙﹚" "﹛﹜" "﹝﹞"
+		                   "⁽⁾" "₍₎" "⦋⦌" "⦍⦎" "⦏⦐" "⁅⁆"
+		                   "⸢⸣" "⸤⸥" "⟅⟆" "⦓⦔" "⦕⦖"
+		                   "⸦⸧" "⸨⸩" "｟｠")
   "A list of strings, each element is a string of 2 chars, the left
-  bracket and a matching right bracket.
+bracket and a matching right bracket.
   Used by `xah-select-text-in-quote' and others.
   Version 2023-07-31")
 
@@ -288,6 +339,67 @@
   "M-8" #'xah-extend-selection
   "M-9" #'xah-select-text-in-quote
   "C-<tab>" #'xah-goto-matching-bracket)
+
+(defun prot-common-shell-command-with-exit-code-and-output (command &rest args)
+  "Run COMMAND with ARGS.
+Return the exit code and output in a list."
+  (with-temp-buffer
+    (list (apply 'call-process command nil (current-buffer) nil args)
+          (buffer-string))))
+
+(defvar prot-eww--punctuation-regexp "[][{}!@#$%^&*()_=+'\"?,.\|;:~`‘’“”]*"
+  "Regular expression of punctionation that should be removed.")
+
+(defun prot-eww--slug-no-punct (str)
+  "Convert STR to a file name slug."
+  (replace-regexp-in-string prot-eww--punctuation-regexp "" str))
+
+(defun prot-eww--slug-hyphenate (str)
+  "Replace spaces with hyphens in STR.
+Also replace multiple hyphens with a single one and remove any
+trailing hyphen."
+  (replace-regexp-in-string
+   "-$" ""
+   (replace-regexp-in-string
+    "-\\{2,\\}" "-"
+    (replace-regexp-in-string "--+\\|\s+" "-" str))))
+
+(defun prot-eww--sluggify (str)
+  "Make STR an appropriate file name slug."
+  (downcase (prot-eww--slug-hyphenate (prot-eww--slug-no-punct str))))
+
+(setq eww-download-directory (expand-file-name "~/Documents/pages/"))
+
+;;;###autoload
+(defun prot-eww-download-html (name)
+  "Download web page and call the file with NAME."
+  (interactive
+   (list
+    (prot-eww--sluggify
+     (read-string "Set downloaded file name: " (plist-get eww-data :title)))))
+  (let* ((path (thread-last eww-download-directory
+                 (expand-file-name
+                  (concat (format-time-string "%Y%m%d_%H%M%S") "--" name ".html"))))
+         (out (prot-common-shell-command-with-exit-code-and-output
+               "wget" "-q" (format "%s" (plist-get eww-data :url))
+               "-O" (format "%s" (shell-quote-argument path)))))
+    (if (= (car out) 0)
+        (message "Downloaded page at %s" path)
+      (message "Error downloading page: %s" (cdr out)))))
+
+(progn
+  (require 'eww)
+  (define-key eww-mode-map (kbd "D") #'prot-eww-download-html))
+
+(defun +eval-region-or-sexp ()
+  "When a evaluate the region if is active, otherwise eval sexp on point."
+  (interactive)
+  (if (not (region-active-p))
+      (call-interactively 'eval-last-sexp)
+    (call-interactively 'eval-region)
+    (when (region-active-p)
+      (deactivate-mark))
+    (message "Region evaluated.")))
 
 (provide 'navigation)
 ;;; navigation.el ends here

@@ -4,7 +4,9 @@
 (require 'core-lib)
 (require 'core-load-paths)
 
-(defvar elpaca-installer-version 0.5)
+(setq-default eldoc-mode -1)
+
+(defvar elpaca-installer-version 0.6)
 (defvar elpaca-directory (expand-file-name "elpaca/" cache-dir))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
@@ -66,7 +68,25 @@
   ;; entire init file before compiling already
   (setq use-package-always-defer t))
 
+(defvar +elpaca-hide-log-commands '( eval-buffer eval-region eval-defun +eval-region-or-sexp
+                                     eval-last-sexp org-ctrl-c-ctrl-c)
+  "List of commands for which a successfully processed log is auto hidden.")
+(defun +elpaca-hide-successful-log ()
+  "Hide Elpaca log buffer if queues processed successfully."
+  (message "this: %S last: %S" this-command last-command)
+  (if-let ((incomplete (cl-find 'incomplete elpaca--queues :key #'elpaca-q<-status))
+           ((elpaca-q<-elpacas incomplete)))
+      nil
+    (when-let ((log (bound-and-true-p elpaca-log-buffer))
+               (window (get-buffer-window log t)) ;; log buffer visible
+               ((or (member last-command +elpaca-hide-log-commands)
+                    (member this-command +elpaca-hide-log-commands))))
+      (with-selected-window window (quit-window 'kill window)))))
+
+(add-hook 'elpaca-post-queue-hook #'+elpaca-hide-successful-log)
+
 (elpaca-wait)
+(add-hook 'elpaca-after-init-hook (lambda () (setq-default eldoc-mode 1)))
 
 (use-package org :elpaca nil)
 
@@ -75,13 +95,7 @@
 (use-package general
   :demand t
   :ensure t
-  :config
-(general-auto-unbind-keys)
-(defalias 'def #'general-def)
-(defalias 'kbd! #'general-simulate-key)
-(defalias 'gsetq #'general-setq)
-(defalias 'gsetq-default #'general-setq-default)
-(defalias 'gsetq-local #'general-setq-local))
+  :config)
 
 (use-package async
   :demand t
@@ -102,6 +116,7 @@
 
 (use-package exwm
   :demand t
+  :if (string= (getenv "XDG_CURRENT_DESKTOP") "EXWM")
   :config
   (exwm-enable)
   (server-start)
@@ -125,18 +140,18 @@
   :config
   (defhydra hydra-volume (:timeout 4)
     "Configure Volume"
-    ("p" desktop-environment-volume-normal-increment "up")
-    ("n" desktop-environment-volume-normal-decrement "down")
+    ("j" desktop-environment-volume-normal-increment "up")
+    ("k" desktop-environment-volume-normal-decrement "down")
     ("q" nil "quit" :exit t))
 
   ;; This hydra function allows for control of brightness
   (defhydra hydra-brightness (:timeout 4)
     "Configure Brightness"
-    ("p" desktop-environment-brightness-increment "up")
-    ("n" desktop-environment-brightness-decrement "down")
+    ("j" desktop-environment-brightness-increment "up")
+    ("k" desktop-environment-brightness-decrement "down")
     ("q" nil "quit" :exit t))
 
-  (general-def "C-c C-s s"
+  (nvmap :prefix "C-c C-s"
     "" '(:ignore t :wk "System")
     "v" #'hydra-volume/body
     "b" #'hydra-brightness/body))
@@ -158,9 +173,11 @@
     (setenv "GPG_AGENT_INFO" nil)  ;; use emacs pinentry
     (setq auth-source-debug t)
     (pinentry-start)
-
+    
     (require 'org-crypt)
     (org-crypt-use-before-save-magic))
+
+
 
 (provide 'core-packages)
 ;;; core-packages.el ends here

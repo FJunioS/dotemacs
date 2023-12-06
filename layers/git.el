@@ -1,7 +1,7 @@
 (require 'core-packages)
 
 (use-package magit
-  :defer 5
+  :defer 3
   :config
   (general-after-gui
     (noct-handle-popup-same-window magit-status-mode)
@@ -11,7 +11,7 @@
     (noct-handle-popup-other-window magit-revision-mode)
     (noct-handle-popup-other-window-no-select magit-diff-mode))
   :general
-  ("C-c gg" #'magit))
+  (leader/vcs "g" #'magit))
 
 (use-package forge)
 

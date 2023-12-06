@@ -36,17 +36,15 @@
 
 ;; 
 ;;; Monitor and workspaces
-(setq )
-
 (add-hook 'exwm-floating-setup-hook 'exwm-layout-hide-mode-line)
 (add-hook 'exwm-floating-exit-hook 'exwm-layout-show-mode-line)
 
 
 (setq exwm-workspace-number 10)
 
-(gsetq exwm-workspace-show-all-buffers t)
+(csetq exwm-workspace-show-all-buffers t)
 
-(gsetq exwm-randr-workspace-monitor-plist
+(csetq exwm-randr-workspace-monitor-plist
        `(0 ,secondary-monitor
            1 ,primary-monitor
            2 ,primary-monitor
@@ -92,13 +90,15 @@ Examples:
    (funcall (get 'exwm-input-global-keys 'custom-set)
             'exwm-input-global-keys exwm-input-global-keys))
 
-(wm-map "s-R" #'exwm-reset
+(wm-map "s-P" #'exwm-reset
         "s-m" #'exwm-workspace-move-window
-        "s-q" #'delete-window
+        "s-;" #'delete-window
         "s-SPC" #'exwm-floating-toggle-floating
-        "s-w" #'kill-this-buffer
+        "s-," #'kill-this-buffer
         "s-d" #'app-launcher-run-app
+        "s-<return>" #'eat-other-window
         "s-s" #'exwm-workspace-switch)
+
 
 (defmacro generate-exwm-select-ws! (index)
   "Return a named function to run `exwm-workspace-switch-create' for INDEX."
@@ -142,7 +142,7 @@ Examples:
 (core-exwm-shortcut "s-S" "flameshot gui")
 (core-exwm-shortcut "s-D" "discord")
 
-(wm-map "s-&"
+(wm-map "s-c"
         (defun exwm-shell-command (command)
           (interactive (list (read-shell-command "$ ")))
           (let ((default-directory "~"))
@@ -168,6 +168,11 @@ Examples:
 ;; Avoid closing emacs without meaning to
 (global-set-key (kbd "C-x C-c") nil)
 
+;; Dvorak
+(global-set-key (kbd "C-q") nil)
+(global-set-key (kbd "C-q C-o") #'manual-save-buffer)
+(global-set-key (kbd "C-q C-.") #'eval-last-sexp)
+
 (add-hook 'exwm-floating-setup-hook 'exwm-layout-hide-mode-line)
 (add-hook 'exwm-floating-exit-hook 'exwm-layout-show-mode-line)
 
@@ -187,7 +192,7 @@ Examples:
             :items ,(lambda () (mapcar #'buffer-name (exwm-all-buffers)))))
   (add-to-list 'consult-buffer-sources 'exwm-buffer-source 'append))
 
-(gsetq exwm-wm-hook nil)
+(csetq exwm-wm-hook nil)
 
 (defun exwm-mode-map:default ()
   (general-def exwm-mode-map
@@ -223,8 +228,7 @@ Examples:
         (csetq exwm-input-simulation-keys
                '(([?\C-j] . [down])
                  ([?\C-k] . [up])
-                 ([?\C-h] . [C-h])
-                 ))
+                 ([?\C-h] . [C-h])))
         (general-def exwm-mode-map
           "C-h C-h" (defun! exwm--firefox-C-h()
                       (interactive)
@@ -236,13 +240,35 @@ Examples:
                       (gui-backend-get-selection 'CLIPBOARD 'STRING))
           ))))
 
+(defun save-history ()
+  (require 'recentf)
+  (require 'savehist)
+  (save-some-buffers)
+  (recentf-save-list)
+  (savehist-save))
+
 (defun suspend-to-sleep ()
   (interactive)
-  (require 'recentf)
-  (recentf-save-list)
+  (save-history)
   (call-process "systemctl" nil nil nil "suspend"))
-
 (wm-map "s-O" #'suspend-to-sleep)
+
+(defun shutdown ()
+  (interactive)
+  (save-history)
+  (call-process "systemctl" nil nil nil "poweroff"))
+
+(defun logout ()
+  (interactive)
+  (save-history)
+  (call-process "pkill" nil nil nil
+                "-KILL" "-u" (user-login-name)))
+
+(start-process "exwm-redshift" nil
+               "redshift" "-l -23:-46" "-t 6500:2500" "-b 0.8:0.7")
+
+(start-process "exwm-ollama" nil
+               "ollama" "serve")
 
 (provide '+exwm)
 ;;; +exwm.el ends here

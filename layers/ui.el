@@ -5,19 +5,84 @@
 (require 'core-packages)
 
 ;; ** Font
+;; (set-fontset-font t #xFE0F spec-1)                ;; Variation Selector 16
+;; (set-fontset-font t '(#x1F1E6 . #x1F1FF) spec-2)  ;; Regional Indicator Syms
+;; (set-fontset-font t '(#x1F3FB . #x1F3FF) spec-3)  ;; Emoji Modifiers
+;; (set-fontset-font t '(#x1F700 . #x1F77F) spec-4)  ;; Alchemical Symbols
+(use-package mixed-pitch
+  :hook
+  ;; Acts on all modes for text editing (including org, markdown, etc.).
+  (text-mode . mixed-pitch-mode))
+
 (general-after-gui
   (set-language-environment "UTF-8")
   (set-default-coding-systems 'utf-8-unix)
+  ;; (when (member "Fantasque Sans Mono" (font-family-list))
+  ;;   (set-frame-font "Fantasque Sans Mono-16" t t))
   (when (member "Fantasque Sans Mono" (font-family-list))
-    (set-frame-font "Fantasque Sans Mono-16" t t)))
+    (set-frame-font "Fantasque Sans Mono-12" t t)))
+
+;; Unicode
+(csetq use-default-font-for-symbols nil)
+(set-fontset-font t 'unicode (face-attribute 'default :family))
+(set-fontset-font t 'unicode "Symbola" nil 'append)
+;; Emojis
+(set-fontset-font t '(#x2300 . #x27e7) "Twemoji")
+(set-fontset-font t '(#x2300 . #x27e7) "Noto Color Emoji" nil 'append)
+(set-fontset-font t '(#x27F0 . #x1FAFF) "Twemoji")
+(set-fontset-font t '(#x27F0 . #x1FAFF) "Noto Color Emoji" nil 'append)
+
+(custom-set-faces
+ '(default ((t :family "Fantasque Sans Mono")))
+ '(fixed-pitch ((t :family "Fantasque Sans Mono")))
+ '(mode-line ((t (:family "DejaVu Sans Mono"))))
+ '(variable-pitch ((t (:family "Noto Serif")))))
+
+(add-hook 'org-mode-hook (lambda () (variable-pitch-mode t)))
+(add-hook 'markdown-mode-hook (lambda () (variable-pitch-mode t)))
+
+(use-package ligature
+  :ensure t
+  :config
+  (ligature-set-ligatures 't '("www"))
+  ;; Enable ligatures in programming modes
+  (ligature-set-ligatures 'prog-mode '("www" "**" "***" "**/" "*>" "*/" "\\\\"
+                                       "\\\\\\" "{-" "::" ":::" ":=" "!!" "!="
+                                       "!==" "-}" "----" "-->" "->" "->>" "-<"
+                                       "-<<" "-~" "#{" "#[" "##" "###" "####"
+                                       "#(" "#?" "#_" "#_(" ".-" ".=" ".."
+                                       "..<" "..." "?=" "??" ";;" ";;;" "/*"
+                                       "/**" "/=" "/==" "/>" "//" "///" "&&"
+                                       "||" "||=" "|=" "|>" "^=" "$>" "++" "+++"
+                                       "+>" "=:=" "==" "===" "==>" "=>" "=>>"
+                                       "<=" "<<" "=/=" ">-" ">=" ">=>" ">>"
+                                       ">>-" ">>=" ">>>" "<*" "<*>" "<|" "<|>"
+                                       "<$" "<$>" "<!--" "<-" "<--" "<->" "<+"
+                                       "<+>" "<=" "<==" "<=>" "<=<" "<>" "<<"
+                                       "<<-" "<<=" "<<<" "<~" "<~~" "</" "</>"
+                                       "~@" "~-" "~>" "~~" "~~>" "%%"))
+  (global-ligature-mode 't))
+
+(use-package highlight-defined
+  :config
+  (highlight-defined-mode))
+
 
 (use-package mini-echo
-  :init
-  ;; Avoid duplicating mini-echo instances
-  (mini-echo-mode -1)
-  (mini-echo-mode +1)
   :custom
-  (mini-echo-right-padding 10))
+  (mini-echo-right-padding 10)
+  :init
+  (setq hl-line-sticky-flag nil)
+  (setq global-hl-line-sticky-flag nil)
+  (setq mini-echo-separator "  ")
+  ;; set default segments of long/short style
+  (setq-default mini-echo-default-segments
+         '(:long  ("time" "major-mode" "eglot" "vcs" "buffer-position"
+                   "flymake" "process" "narrow" "macro" "profiler"
+                   "meow" "buffer-name" "buffer-size" "selection-info")
+           :short ("buffer-name-short" "meow" "buffer-position" "process"
+                   "profiler" "selection-info" "narrow" "macro")))
+  (mini-echo-mode))
 
 (use-package highlight-escape-sequences
   :after 'modus-themes
@@ -199,7 +264,7 @@
           " "
           ))
 
-  (gsetq mode-line-align-right
+  (csetq mode-line-align-right
          '(""
            (:propertize (:eval (shorten-directory default-directory 30)) face font-lock-string-face)
            (vc-mode vc-mode)
@@ -239,7 +304,7 @@
   (defun reserve-middle/right ()
     (+ RIGHT_PADDING (length (format-mode-line mode-line-align-right))))
 
-  (gsetq mode-line-format
+  (csetq mode-line-format
          (list
           mode-line-align-left
           '(:eval (mode-line-fill-center 'mode-line
