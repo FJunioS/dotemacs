@@ -7,10 +7,18 @@
 (create-keymap leader)
 (create-keymap toggle)
 
-(global-set-key (kbd "C-c") leader-map)
+(global-map "C-c" leader-map)
+(map leader-map "t" toggle-map)
+
 
 (define-key input-decode-map (kbd "C-[") [control-bracketleft])
 (define-key input-decode-map (kbd "ESC") [escape])
+
+;; Dvorak specific remaps
+(map key-translation-map "C-h" "C-x")
+(map key-translation-map "C-t" "C-f")
+
+(global-map "C-@" help-map)
 
 ;; Disable arrow keys to force me to use emacs navigation
 (global-map "<left>" nil
@@ -22,13 +30,13 @@
 (global-map "M-k" #'kill-this-buffer+
             "C-," #'execute-extended-command
             "C-\\" #'universal-argument
-            "C-u" #'delete-char
-            "M-u" #'kill-word
+            "C-x C-s" #'manual-save-buffer
             "M-'" #'save-buffer
             "M-<right>" #'next-buffer
             "M-<left>"  #'previous-buffer)
 
 (map emacs-lisp-mode-map
+     "C-c C-c" #'eval-defun
      "C-x C-e" #'+eval-region-or-sexp)
 
 (with-eval-after-load 'woman
@@ -52,11 +60,99 @@
 ;;--------------------------------------------------
 (use-package avy
   :ensure t
-  :init (global-map "C-u" 'avy-goto-char))
-;; (use-package repeat-help)
-;; (use-package smartparens
-;;   :ensure t
-;;   :config)
+  :bind (("C-u" . avy-goto-char)
+         ("C-c C-x" . avy-goto-line)))
+
+(use-package ace-window
+  :ensure t
+  :bind (("C-x o" . ace-window)
+         ("M-o" . ace-window)))
+
+(use-package repeat
+  :elpaca nil
+  :init
+  ;; Disable the built-in repeat-mode hinting
+  (csetq repeat-echo-function #'ignore)
+
+  ;; Spawn or hide a which-key popup
+  (advice-add 'repeat-post-hook :after
+              (defun repeat-help--which-key-popup ()
+                (if-let ((cmd (or this-command real-this-command))
+                         (keymap (or repeat-map
+                                     (repeat--command-property 'repeat-map))))
+                    (run-at-time
+                     0 nil
+                     (lambda ()
+                       (which-key--create-buffer-and-show
+                        nil (symbol-value keymap))))
+                  (which-key--hide-popup))))
+  (defvar org-link-repeat-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "n") 'org-next-link)
+      (define-key map (kbd "p") 'org-previous-link)
+      map))
+
+  (dolist (cmd '(org-next-link org-previous-link))
+    (put cmd 'repeat-map 'org-link-repeat-map))
+  (defvar windmove-repeat-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "<left>") 'windmove-left)
+      (define-key map (kbd "S-<left>") 'windmove-swap-states-left)
+      (define-key map (kbd "<right>") 'windmove-right)
+      (define-key map (kbd "S-<right>") 'windmove-swap-states-right)
+      (define-key map (kbd "<up>") 'windmove-up)
+      (define-key map (kbd "S-<up>") 'windmove-swap-states-up)
+      (define-key map (kbd "<down>") 'windmove-down)
+      (define-key map (kbd "S-<down>") 'windmove-swap-states-down)
+      map))
+
+  (map-keymap
+   (lambda (_key cmd)
+     (when (symbolp cmd)
+       (put cmd 'repeat-map 'windmove-repeat-map)))
+   windmove-repeat-map)
+  )
+
+
+(use-package repeat-help
+  :ensure t
+  :init (repeat-help-mode))
+
+(use-package smartparens
+  :ensure t
+  :hook (emacs-lisp-mode . smartparens-mode)
+  :config
+  (defvar structural-edit-map
+    (let ((map (make-sparse-keymap)))
+      (pcase-dolist (`(,k . ,f)
+                     '(("u" . backward-up-list)
+                       ("f" . forward-sexp)
+                       ("b" . backward-sexp)
+                       ("d" . down-list)
+                       ("k" . kill-sexp)
+                       ("n" . sp-next-sexp)
+                       ("p" . sp-previous-sexp)
+                       ("K" . sp-kill-hybrid-sexp)
+                       ("]" . sp-forward-slurp-sexp)
+                       ("[" . sp-backward-slurp-sexp)
+                       ("}" . sp-forward-barf-sexp)
+                       ("{" . sp-backward-barf-sexp)
+                       ("C" . sp-convolute-sexp)
+                       ("J" . sp-join-sexp)
+                       ("S" . sp-split-sexp)
+                       ("R" . sp-raise-sexp)
+                       ("\\" . indent-region)
+                       ("/" . undo)
+                       ("t" . transpose-sexps)
+                       ("x" . eval-defun)))
+        (define-key map (kbd k) f))
+      map))
+
+  (map-keymap
+   (lambda (_ cmd)
+     (put cmd 'repeat-map 'structural-edit-map))
+   structural-edit-map)
+  (map  leader-map "C-u" structural-edit-map))
 
 ;; (add-hook 'emacs-lisp-mode (lambda () (smartparens-mode))
 
@@ -391,15 +487,55 @@ trailing hyphen."
   (require 'eww)
   (define-key eww-mode-map (kbd "D") #'prot-eww-download-html))
 
-(defun +eval-region-or-sexp ()
-  "When a evaluate the region if is active, otherwise eval sexp on point."
+(defun scroll-up-half ()
   (interactive)
-  (if (not (region-active-p))
-      (call-interactively 'eval-last-sexp)
-    (call-interactively 'eval-region)
-    (when (region-active-p)
-      (deactivate-mark))
-    (message "Region evaluated.")))
+  (scroll-up-command
+   (floor
+    (- (window-height)
+       next-screen-context-lines)
+    2)))
+
+(defun scroll-down-half ()
+  (interactive)
+  (scroll-down-command
+   (floor
+    (- (window-height)
+       next-screen-context-lines)
+    2)))
+
+;;;; Substitute this with eval-defun
+;;
+;; (defun +eval-region-or-sexp ()
+;;   "When a evaluate the region if is active, otherwise eval sexp on point."
+;;   (interactive)
+;;   (if (not (region-active-p))
+;;       (call-interactively 'eval-last-sexp)
+;;     (call-interactively 'eval-region)
+;;     (when (region-active-p)
+;;       (deactivate-mark))
+;;     (message "Region evaluated.")))
+
+;; https://karthinks.com/software/more-less-emacs/
+(defvar-local hide-cursor--original nil)
+
+(define-minor-mode hide-cursor-mode
+  "Hide or show the cursor.
+When the cursor is hidden `scroll-lock-mode' is enabled, so that
+the buffer works like a pager."
+  :global nil
+  :lighter "H"
+  (if hide-cursor-mode
+      (progn
+        (scroll-lock-mode 1)
+        (setq-local hide-cursor--original
+                    cursor-type)
+        (setq-local cursor-type nil))
+    (scroll-lock-mode -1)
+    (setq-local cursor-type (or hide-cursor--original
+                                t))))
+
+(map toggle-map "h" 'hide-cursor-mode)
+(global-map "<f7>" 'hide-cursor-mode)
 
 (provide 'navigation)
 ;;; navigation.el ends here

@@ -39,8 +39,7 @@
     (interactive "P")
     (if count
         (pdf-view-goto-page count)
-      (pdf-view-last-page)))
-  )
+      (pdf-view-last-page))))
 
 ;; Biblio package for adding BibTeX records and download publications
 (use-package biblio)
@@ -48,12 +47,40 @@
 
 ;; Configure Elfeed
 (use-package elfeed
-  :config
-  (leader :prefix "r"
-    "" '(:ignore t :wk "Readers")
-    "e" #'elfeed)
+  :ensure t
+  :init
+  (map leader-map
+       "re" #'elfeed)
 
   (csetq elfeed-db-directory (concat cache-dir "elfeed/")
-         elfeed-show-entry-switch 'display-buffer))
+         elfeed-show-entry-switch 'display-buffer)
+  (add-hook 'elfeed-new-entry-hook #'elfeed-declickbait-entry)
+
+  (defun elfeed-declickbait-entry (entry)
+    (let ((title (elfeed-entry-title entry)))
+      (setf (elfeed-meta entry :title)
+            (elfeed-title-transform title))))
+
+  (defun elfeed-title-transform (title)
+    "Declickbait string TITLE."
+    (let* ((trim "\\(?:\\(?:\\.\\.\\.\\|[!?]\\)+\\)")
+           (arr (split-string title nil t trim))
+           (s-table (copy-syntax-table)))
+      (modify-syntax-entry ?\' "w" s-table)
+      (with-syntax-table s-table
+        (mapconcat (lambda (word)
+                     (cond
+                      ((member word '("AND" "OR" "IF" "ON" "IT" "TO"
+                                      "A" "OF" "VS" "IN" "FOR" "WAS"
+                                      "IS" "BE"))
+                       (downcase word))
+                      ((member word '("WE" "DAY" "HOW" "WHY" "NOW" "OLD"
+                                      "NEW" "MY" "TOO" "GOT" "GET" "THE"
+                                      "ONE" "DO" "YOU"))
+                       (capitalize word))
+                      ((> (length word) 3) (capitalize word))
+                      (t word)))
+                   arr " "))))
+  )
 
 (provide 'readers)

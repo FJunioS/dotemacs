@@ -18,11 +18,8 @@
 ;;; Code:
 
 ;; iSync: A command line application which synchronizes mailboxes.
-(use-package isync)
 (use-package notmuch)
-(use-package pass
-  :config
-  )
-(use-package msmtp)
+(use-package pass)
 
+(provide 'email)
 ;;; email.el ends here

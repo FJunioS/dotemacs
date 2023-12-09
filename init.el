@@ -36,10 +36,15 @@
 (require 'subr-x)
 (require 'cl-lib)
 
-(dolist (path '("core/libs" "layers"))
-  (add-to-list 'load-path (locate-user-emacs-file path)))
+(defvar emacs-dir (if (string= (expand-file-name "~/.cache/emacs/") user-emacs-directory)
+                           (if (file-exists-p "~/.emacs.d/")
+                               (expand-file-name "~/.emacs.d/")
+                             (expand-file-name "~/.config/emacs/"))
+                         ;; else
+                    (expand-file-name user-emacs-directory))
+  "Emacs root directory.")
 
-(setq-default eldoc-mode -1)
+(add-to-list 'load-path (concat emacs-dir "lisp/"))
 
 (require 'core-lib)
 (require 'core-load-paths)
@@ -227,6 +232,8 @@ tell you about it. Very annoying. This prevents that."
 
 (defconst layers
   '(essentials
+    email
+    OS
     window
     navigation
     text-editing
@@ -249,3 +256,4 @@ tell you about it. Very annoying. This prevents that."
 (server-start))
 
 ;;; init.el ends here
+(put 'magit-clean 'disabled nil)

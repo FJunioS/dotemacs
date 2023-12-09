@@ -5,10 +5,34 @@
 (require 'popup-handler)
 (require 'core-packages)
 
+(defun save-all-history ()
+  "Save all commands that somehow store any kind of history, like savehist or recentf."
+  (bookmark-save)
+  (when recentf-mode
+    (recentf-save-list))
+  (when savehist-mode
+    (savehist-save t)))
+
+;; save hist files after 10 seconds of idle time
+;; if not idle, save every 5 minutes
+(run-at-active-interval (* 5 60) 10
+  (silently! (save-all-history)))
+
+(add-hook 'kill-emacs-hook 'save-all-history)
+
 (display-time-mode)
 (csetq display-time-24hr-format t
       display-time-day-and-date t
       display-time-load-average-threshold nil)
+
+(use-package auto-save
+  :elpaca nil
+  :init
+  (auto-save-mode)
+  ;; auto-save files after 10 seconds of idle time
+  ;; if not idle, save every 5 minutes
+  (csetq auto-save-interval (* 5 60)
+         auto-save-timeout 10))
 
 (use-package keychain-environment)
 
@@ -70,7 +94,6 @@
    auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
    auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
 
-  (add-hook 'kill-emacs-hook #'savehist-save)
   (add-hook! 'savehist-save-hook
     (defun savehist-remove-unprintable-registers-h ()
       "Remove unwriteable registers (e.g. containing window configurations).
@@ -112,6 +135,8 @@ the unwritable tidbits."
 (use-package vimish-fold
   :config
   (vimish-fold-global-mode))
+
+(use-package 0x0)
 
 (use-package apropos
   :elpaca nil
@@ -171,15 +196,12 @@ the unwritable tidbits."
   :init (recentf-mode)
   :custom
   (recentf-save-file (concat cache-dir "recentf"))
-  :general
-  ("C-x C-r" #'recentf)
-  (leader/file
-    "r" #'recentf)
   :config
+  (global-map "C-x C-r" #'recentf)
   (setq recentf-auto-cleanup nil
         recentf-max-saved-items 200)
-  (setq recentf-exclude '("^/tmp/emacs/.*" "^/var/folders\\.*" "COMMIT_EDITMSG\\'"
-                          ".*-autoloads\\.el\\'" "[/\\]\\.elpa/"))
+  (csetq recentf-exclude '("^/tmp/emacs/.*" "^/var/folders\\.*" "COMMIT_EDITMSG\\'"
+                          ".*-autoloads\\.el\\'" "[/\\]\\.elpa/" "\\*/bookmarks\\'"))
 
   (setq recentf-auto-cleanup (if (daemonp) 300))
   (add-hook 'kill-emacs-hook #'recentf-save-list)

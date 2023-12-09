@@ -13,4 +13,5 @@
   (start-process "nixos-rebuild" "*nixos-rebuild*" "sudo"
                  "nixos-rebuild" "switch"))
 
+(provide 'OS)
 ;;; OS.el ends here

@@ -7,22 +7,6 @@
   (setq-default visual-fill-column-width 150)
   (setq-default visual-fill-column-center-text t))
 
-(use-package hungry-delete
-  :general
-  ('override
-   [remap backward-kill-word]
-   (general-predicate-dispatch #'backward-kill-word
-     (looking-back (rx (1+ space))
-                   (line-beginning-position))
-     #'hungry-delete-backward
-     (bound-and-true-p lispyville-mode)
-     #'lispyville-delete-backward-word)))
-
-(general-add-advice '(backward-kill-word
-                      hungry-delete-backward
-                      hungry-delete-forward)
-                    :around #'NOP-kill-new)
-
 (use-package selection-highlight-mode
   :elpaca (:host github
            :repo "balloneij/selection-highlight-mode")
@@ -33,14 +17,11 @@
   (add-hook 'prog-mode 'indent-guide-mode)
   (set-face-background 'indent-guide-face "unspecified"))
 
-(setq meow-keypad-leader-dispatch "C-c")
-
 (use-package whitespace
   :elpaca nil
   :demand t
-  :general (general-def 'leader-toggle-map "w" #'whitespace-mode)
-
   :config
+  (map toggle-map "w" #'whitespace-mode)
   (setq whitespace-style
          '(face tabs spaces trailing lines space-before-tab
                 newline indentation empty space-after-tab space-mark
@@ -51,7 +32,7 @@
          '((tab-mark ?\t [?\xBB ?\t])
            (newline-mark ?\n [?¬ ?\n])
            (trailing-mark ?\n [?¬ ?\n])
-           (space-mark ?\xB7 [?·] [?.])
+           (space-mark 32 [?·] [?.])
            (space-mark ?\xA0 [?\·] [?_])))
 
   (defun add-lines-tail ()
@@ -59,18 +40,7 @@
     (setq-local whitespace-style (cons 'lines-tail whitespace-style))
     (whitespace-mode))
 
-  (general-add-hook 'prog-mode-hook #'add-lines-tail)
-
-  (global-whitespace-mode)
-
-  (defun manual-save-buffer ()
-    (interactive)
-    (call-interactively #'delete-trailing-whitespace)
-    (call-interactively #'save-buffer))
-
-  (general-def 'normal
-       "fd" #'manual-save-buffer
-       "C-x C-s" #'manual-save-buffer))
+  (add-hook 'prog-mode-hook #'add-lines-tail))
 
 (setq prettify-symbols-unprettify-at-point 'right-edge)
 
@@ -151,6 +121,18 @@
   (setq prettify-symbols-unprettify-at-point 'right-edge))
 
 (add-hook! 'org-mode-hook #'org-prettify-mode)
+
+(use-package dictionary
+  :ensure t
+  :bind (:map text-mode-map
+              ("M-." . dictionary-lookup-definition))
+  :init
+  (add-to-list 'display-buffer-alist
+               '("^\\*dictionary\\*" display-buffer-in-direction
+                 (side . right)
+                 (window-width . 50)))
+  :custom
+  (dictionary-server "dict.org"))
 
 (use-package artbollocks-mode
   :ghook '(org-mode-hook text-mode-hook))

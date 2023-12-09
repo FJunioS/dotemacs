@@ -123,11 +123,14 @@
   :hook ((eglot-managed-mode . my/eglot-eldoc-settings))
   :config
   (defun my/eglot-eldoc-settings ()
-    (setq eldoc-documentation-strategy
-          'eldoc-documentation-compose-general))
+    (csetq eldoc-documentation-strategy
+          'eldoc-documentation-compose-eagerly))
 
   (setq completion-category-overrides '((eglot (styles orderless))))
   (setq eglot-ignored-server-capabilites '(:inlayHintProvider)))
+
+(use-package dape
+  :elpaca (:host github :repo "svaante/dape"))
 
 (use-package restclient
   :ensure t)

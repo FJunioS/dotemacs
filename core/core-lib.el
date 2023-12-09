@@ -661,6 +661,23 @@ INTERACTIVE means that accept the Universal Argument `C-u'"
   "Return non-nil if the selected window is a side window."
   (window-parameter (selected-window) 'window-side))
 
+(defmacro run-at-active-interval (interval idle-interval &rest body)
+  "Every INTERVAL seconds, unless idle for > IDLE-INTERVAL seconds, run BODY.
+Also, after IDLE-INTERVAL seconds of idle time, run BODY. This allows using an
+idle timer to quickly run BODY when Emacs becomes idle but also ensures that
+BODY is run periodically even if Emacs is actively being used."
+  (declare (indent 2))
+  `(progn
+     (run-at-time (current-time) ,interval
+                  (lambda ()
+                    (let* ((idle-time (current-idle-time))
+                           (idle-secs (when idle-time
+                                        (float-time idle-time))))
+                      (unless (and idle-secs
+                                   (> idle-secs ,idle-interval))
+                        ,@body))))
+     (run-with-idle-timer ,idle-interval t (lambda () ,@body))))
+
 ;;;###autoload
 (defun kill-this-buffer+ ()
   "`kill-this-buffer' with no menu-bar checks.

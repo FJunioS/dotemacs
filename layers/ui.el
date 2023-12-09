@@ -14,13 +14,12 @@
   ;; Acts on all modes for text editing (including org, markdown, etc.).
   (text-mode . mixed-pitch-mode))
 
-(general-after-gui
-  (set-language-environment "UTF-8")
-  (set-default-coding-systems 'utf-8-unix)
-  ;; (when (member "Fantasque Sans Mono" (font-family-list))
-  ;;   (set-frame-font "Fantasque Sans Mono-16" t t))
-  (when (member "Fantasque Sans Mono" (font-family-list))
-    (set-frame-font "Fantasque Sans Mono-12" t t)))
+(set-language-environment "UTF-8")
+(set-default-coding-systems 'utf-8-unix)
+;; (when (member "Fantasque Sans Mono" (font-family-list))
+;;   (set-frame-font "Fantasque Sans Mono-16" t t))
+(when (member "Fantasque Sans Mono" (font-family-list))
+  (set-frame-font "Fantasque Sans Mono-14" t))
 
 ;; Unicode
 (csetq use-default-font-for-symbols nil)
@@ -43,7 +42,7 @@
 
 (use-package ligature
   :ensure t
-  :config
+  :init
   (ligature-set-ligatures 't '("www"))
   ;; Enable ligatures in programming modes
   (ligature-set-ligatures 'prog-mode '("www" "**" "***" "**/" "*>" "*/" "\\\\"
@@ -61,12 +60,12 @@
                                        "<+>" "<=" "<==" "<=>" "<=<" "<>" "<<"
                                        "<<-" "<<=" "<<<" "<~" "<~~" "</" "</>"
                                        "~@" "~-" "~>" "~~" "~~>" "%%"))
-  (global-ligature-mode 't))
+  (global-ligature-mode 1))
 
 (use-package highlight-defined
-  :config
-  (highlight-defined-mode))
-
+  :ensure t
+  :init
+  (highlight-defined-mode 1))
 
 (use-package mini-echo
   :custom
@@ -113,18 +112,12 @@
 (use-package kind-icon
   :ensure t
   :after corfu
-  :custom
-  (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+;;  :custom
+;;  (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
   :config
+  (csetq completion-in-region-function (kind-icon-enhance-completion completion-in-region-function)
+         kind-icon-extra-space t)
   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
-
-;; (add-function :after after-focus-change-function
-;;               #'my-change-background)
-;; (defun my-change-background ()
-;;   (dolist (frame (frame-list))
-;;     (pcase (frame-focus-state frame)
-;;       (`t (set-face-background 'default "#131416" frame))
-;;       (`nil (set-face-background 'default "#1f2125" frame)))))
 
 (use-package modus-themes
   :defer 0

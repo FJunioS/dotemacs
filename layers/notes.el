@@ -93,6 +93,8 @@
         org-default-notes-file (expand "todo.org" user-notes-dir))
 
   (require '+org)
+  ;; run after a resettable delay of 0.3 seconds.
+  (debounce! 'org-agenda-do-context-action 0.3)
   (setq org-tab-first-hook #'+org-cycle-only-current-subtree-h)
 
   ;; display images

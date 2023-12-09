@@ -66,7 +66,7 @@
   (require 'use-package)
   ;; don't actually need `eval-when-compile' for rest since currently loading
   ;; entire init file before compiling already
-  (setq use-package-always-defer t))
+  (csetq use-package-always-defer t))
 
 (defvar +elpaca-hide-log-commands '( eval-buffer eval-region eval-defun +eval-region-or-sexp
                                      eval-last-sexp org-ctrl-c-ctrl-c)

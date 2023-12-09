@@ -1,23 +1,48 @@
+;;; completion.el ---  desc  -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
 (require 'core-packages)
 
-(use-package yasnippet
-  :init (yas-global-mode)
-  :config
-  (map yas-minor-mode-map
-       "C-c y" nil
-       "C-c yi" #'yas-insert-snippet
-       "C-c yn" #'yas-new-snippet
-       "C-c ye" #'yas-visit-snippet-file)
+;; Configure Tempel
+(use-package tempel
+  :ensure t
+  :init
+  ;; Setup completion at point
+  (defun tempel-setup-capf ()
+    ;; Add the Tempel Capf to `completion-at-point-functions'.
+    ;; `tempel-expand' only triggers on exact matches. Alternatively use
+    ;; `tempel-complete' if you want to see all matches, but then you
+    ;; should also configure `tempel-trigger-prefix', such that Tempel
+    ;; does not trigger too often when you don't expect it. NOTE: We add
+    ;; `tempel-expand' *before* the main programming mode Capf, such
+    ;; that it will be tried first.
+    (setq-local completion-at-point-functions
+                (cons #'tempel-expand
+                      completion-at-point-functions)))
+  (add-hook 'conf-mode-hook 'tempel-setup-capf)
+  (add-hook 'prog-mode-hook 'tempel-setup-capf)
+  (add-hook 'text-mode-hook 'tempel-setup-capf)
 
-  (add-hook 'escape-hook #'yas-abort-snippet)
-  (let ((yas-dir (expand "snippets/" emacs-dir)))
-    (eval
-     `(setq yas/snippet-dirs '(,yas-dir ,(expand "snippets/" user-emacs-directory )))))
+  (csetq tempel-template-sources 'tempel-path-templates
+         tempel-trigger-prefix ""
+         tempel-path (concat emacs-dir "templates"))
+  (create-keymap snippet)
+  (map leader-map "t" snippet-map)
+  (map snippet-map
+       "t" #'tempel-insert
+       "c" #'tempel-complete)
 
-  (setq yas-wrap-around-region t))
+  (defun tempel-include (elt)
+    (when (eq (car-safe elt) 'i)
+      (if-let (template (alist-get (cadr elt) (tempel--templates)))
+          (cons 'l template)
+        (message "Template %s not found" (cadr elt))
+        nil)))
+  (add-to-list 'tempel-user-elements #'tempel-include)
+  )
+
 
 ;; (use-package transducers)
-
 
 (use-package spacious-padding
   :init
@@ -30,6 +55,14 @@
              :right-divider-width 30
              :scroll-bar-width 8))
     (spacious-padding-mode 1)))
+
+(use-package cape
+  :ensure t
+  :init
+  (pushnew! completion-at-point-functions
+            #'cape-file
+            #'cape-abbrev
+            #'cape-history))
 
 (use-package corfu
   :elpaca (corfu :files (:defaults "extensions/*.el"))
@@ -442,9 +475,36 @@ targets."
                  nil
                  (window-parameters (mode-line-format . none))))
 
-  (setq prefix-help-command #'embark-prefix-help-command))
+  (setq prefix-help-command #'embark-prefix-help-command)
+  (eval-when-compile
+    (defmacro my/embark-ace-action (fn)
+      `(defun ,(intern (concat "my/embark-ace-" (symbol-name fn))) ()
+         (interactive)
+         (with-demoted-errors "%s"
+           (require 'ace-window)
+           (let ((aw-dispatch-always t))
+             (aw-switch-to-window (aw-select nil))
+             (call-interactively (symbol-function ',fn)))))))
 
-;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+  (define-key embark-file-map     (kbd "o") (my/embark-ace-action find-file))
+  (define-key embark-buffer-map   (kbd "o") (my/embark-ace-action switch-to-buffer))
+  (define-key embark-bookmark-map (kbd "o") (my/embark-ace-action bookmark-jump))
+
+  (defun sudo-find-file (file)
+  "Open FILE as root."
+  (interactive "FOpen file as root: ")
+  (when (file-writable-p file)
+    (user-error "File is user writeable, aborting sudo"))
+  (find-file (if (file-remote-p file)
+                 (concat "/" (file-remote-p file 'method) ":"
+                         (file-remote-p file 'user) "@" (file-remote-p file 'host)
+                         "|sudo:root@"
+                         (file-remote-p file 'host) ":" (file-remote-p file 'localname))
+               (concat "/sudo:root@localhost:" file))))
+  (define-key embark-file-map (kbd "S") 'sudo-find-file)
+
+  (define-key embark-region-map (kbd "U") '0x0-dwim)
+  )
 
 (use-package embark-consult
   :ensure t ; only need to install it, embark loads it after consult if found
@@ -463,3 +523,5 @@ targets."
 
 (provide 'completion)
 ;; completion.el ends here
+
+;;; completion.el ends here
