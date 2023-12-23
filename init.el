@@ -44,6 +44,8 @@
                     (expand-file-name user-emacs-directory))
   "Emacs root directory.")
 
+(add-to-list 'load-path  (concat emacs-dir "/core/"))
+(add-to-list 'load-path (concat emacs-dir "layers/"))
 (add-to-list 'load-path (concat emacs-dir "lisp/"))
 
 (require 'core-lib)
@@ -230,8 +232,9 @@ tell you about it. Very annoying. This prevents that."
 ;; Avoid packages store cache on emacs folder.
 (setq user-emacs-directory cache-dir)
 
-(defconst layers
-  '(essentials
+(defconst ju-layers
+  '(keymaps
+    essentials
     email
     OS
     window
@@ -245,15 +248,19 @@ tell you about it. Very annoying. This prevents that."
     notes
     readers)
   "list of layers to load.")
-(dolist (mod layers)
+(dolist (mod ju-layers)
   (require mod))
 
 (setq debug-on-error init-file-debug)
 (setq inhibit-message nil)
+
+(let ((cfile (concat emacs-dir "custom.el")))
+  (when (file-exists-p cfile)
+    (csetq custom-file cfile)
+    (load-file cfile)))
 
 (require 'server)
 (unless (server-running-p)
 (server-start))
 
 ;;; init.el ends here
-(put 'magit-clean 'disabled nil)
