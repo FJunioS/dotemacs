@@ -19,14 +19,19 @@
     (setq-local completion-at-point-functions
                 (cons #'tempel-expand
                       completion-at-point-functions)))
-  (add-hook 'conf-mode-hook 'tempel-setup-capf)
-  (add-hook 'prog-mode-hook 'tempel-setup-capf)
-  (add-hook 'text-mode-hook 'tempel-setup-capf)
+  (add-hook! '(conf-mode-hook
+               prog-mode-hook
+               text-mode-hook)
+               'tempel-setup-capf)
+
+  (global-tempel-abbrev-mode)
 
   (csetq tempel-template-sources 'tempel-path-templates
          tempel-trigger-prefix ""
          tempel-path (concat emacs-dir "templates"))
-  (create-keymap snippet)
+
+  ;; Create keymap
+  (create-keymap snippet-map)
   (map leader-map "t" snippet-map)
   (map snippet-map
        "t" #'tempel-insert
@@ -38,9 +43,8 @@
           (cons 'l template)
         (message "Template %s not found" (cadr elt))
         nil)))
-  (add-to-list 'tempel-user-elements #'tempel-include)
-  )
 
+  (add-to-list 'tempel-user-elements #'tempel-include))
 
 ;; (use-package transducers)
 
@@ -72,23 +76,25 @@
   'eshell-mode-hook
   'eglot-managed-mode-hook
   :config
-  (corfu-popupinfo-mode)
-  (corfu-indexed-mode)
+  (corfu-popupinfo-mode 1)
+  (corfu-indexed-mode   1)
+  (corfu-history-mode   1)
 
   (defun corfu-enable-in-minibuffer ()
     "Enable Corfu in the minibuffer if `completion-at-point' is bound."
     (when (where-is-internal #'completion-at-point (list (current-local-map)))
       ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
       (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
-                  corfu-popupinfo-delay nil)      (corfu-mode 1)))
+                  corfu-popupinfo-delay nil)
+      (corfu-mode 1)))
 
   (dolist (c '(minibuffer-setup-hook eshell-mode-hook))
     (add-hook c #'corfu-enable-in-minibuffer))
 
-  (setq corfu-auto t
+  (csetq corfu-auto t
         corfu-preview-current nil
+        corfu-quit-no-match nil
         corfu-auto-delay 0.15
-        corfu-quit-no-match t
         corfu-indexed-start 1
         corfu-auto-prefix 3)
 
@@ -131,7 +137,7 @@
                                          #'(corfu-quit)
                                          (insert ,(cdr c)))))
 
-  (cl-pushnew 'corfu-history savehist-additional-variables :test 'equal)
+  (pushnew! savehist-additional-variables 'corfu-history)
 
   (defmacro generate-corfu-select-index! (index)
     "return a named function to run `corfu-complete' for index."
@@ -148,15 +154,15 @@
        "C-n" #'corfu-next
        "C-p" #'corfu-previous
        "C-l" #'corfu-complete
-       "C-u" #'corfu-scroll-down
-       "C-d" #'corfu-scroll-up
+       "C-v" #'corfu-scroll-down
+       "C-S-v" #'corfu-scroll-up
        "<tab>" #'corfu-complete
 
        "<return>" #'(lambda () (interactive)
                  (corfu-complete)
                  (call-interactively #'newline))
 
-       "<escape>" (defun corfu-quit-minibuffer ()
+       "ESC" (defun corfu-quit-minibuffer ()
                     "`escape-quit-minibuffer' but quit corfu if active."
                     (interactive)
                     (when (and (boundp 'corfu--frame)
@@ -217,6 +223,7 @@
         register-preview-function #'consult-register-format)
 
   :config
+  (map global-map "C-r" #'consult-bookmark)
   (map leader-map "SPC" #'switch-to-buffer)
   (global-map
    "C-s"     #'consult-line
@@ -246,7 +253,105 @@
                      :prompt "Go to line forward: ")
 
   (global-set-key (kbd "C-s") 'my/consult-line-forward)
-  (global-set-key (kbd "C-r") 'my/consult-line-backward)
+
+  ;; ------------------------------------------------------
+  (require 'cl-lib)
+  (require 'dom)
+  (require 'url-util)
+  (require 'xml)
+
+  (defun consult--xdg-recent-file-list ()
+    "Get a list of recently used files on XDG-compliant systems.
+
+This function extracts a list of files from the file
+`recently-used.xbel' in the folder `xdg-data-home'.
+
+For more information on this specification, see
+https://www.freedesktop.org/wiki/Specifications/desktop-bookmark-spec/"
+    (let ((data-file (expand-file-name "recently-used.xbel" (xdg-data-home)))
+          (xml-parsing-func (if (libxml-available-p)
+                                #'libxml-parse-xml-region
+                              #'xml-parse-region)))
+      (if (file-readable-p data-file)
+          (delq nil
+                (mapcar (lambda (bookmark-node)
+                          (when-let ((local-path (string-remove-prefix
+                                                  "file://"
+                                                  (dom-attr bookmark-node 'href))))
+                            (let ((full-file-name (decode-coding-string
+                                                   (url-unhex-string local-path)
+                                                   'utf-8)))
+                              (when (file-exists-p full-file-name)
+                                full-file-name))))
+                        (nreverse (dom-by-tag (with-temp-buffer
+                                                (insert-file-contents data-file)
+                                                (funcall xml-parsing-func
+                                                         (point-min)
+                                                         (point-max)))
+                                              'bookmark))))
+        (message "consult: List of XDG recent files not found")
+        '())))
+
+(defun consult--recent-system-files ()
+  "Return a list of files recently used by the system."
+  (cl-case system-type
+    (gnu/linux
+     (consult--xdg-recent-file-list))
+    (t
+     (message "consult-recent-file: \"%s\" currently unsupported"
+              system-type)
+     '())))
+
+(defcustom consult-include-system-recent-files t
+  "Whether to include files used by other programs in `consult-recent-file'."
+  :type 'boolean
+  :group 'consult)
+
+(defun consult--recent-files-mixed-candidates ()
+  "Return a list of files recently used by Emacs and the system.
+
+These files are sorted by modification time, from most recent to least."
+  (thread-last
+      (consult--recent-system-files)
+    (seq-filter #'recentf-include-p)
+    (append (mapcar #'substring-no-properties recentf-list))
+    delete-dups
+    (consult--recent-files-sort)))
+
+  (defun consult--recent-files-sort (file-list)
+  "Sort the FILE-LIST by modification time, from most recent to least recent."
+  (thread-last
+      file-list
+    ;; Use modification time, since getting file access time seems to count as
+    ;; accessing the file, ruining future uses.
+    (mapcar (lambda (f)
+              (cons f (file-attribute-modification-time (file-attributes f)))))
+    (seq-sort (pcase-lambda (`(,f1 . ,t1) `(,f2 . ,t2))
+                ;; Want existing, most recent, local files first.
+                (cond ((or (not (file-exists-p f1))
+                           (file-remote-p f1))
+                       nil)
+                      ((or (not (file-exists-p f2))
+                           (file-remote-p f2))
+                       t)
+                      (t (time-less-p t2 t1)))))
+    (mapcar #'car)))
+
+  ;;;###autoload
+  (defun consult-recent-file ()
+    "Find recent using `completing-read'."
+    (interactive)
+    (find-file
+     (consult--read
+      (or (mapcar #'abbreviate-file-name
+                  recentf-list)
+          (user-error "No recent files"))
+      :prompt "Find recent file: "
+      :sort nil
+      :require-match t
+      :category 'file
+      :state (consult--file-preview)
+      :history 'file-name-history)))
 
   (defun define-minibuffer-key (key &rest defs)
     "Define KEY conditionally in the minibuffer.
@@ -311,12 +416,12 @@ DEFS is a plist associating completion categories to commands."
   :hook ((elpaca-after-init-hook . vertico-mode)
          (minibuffer-setup-hook  . vertico-repeat-save))
   :init
-  (when (require 'vertico nil t)
     (vertico-mode 1)
     (vertico-mouse-mode 1)
     (vertico-multiform-mode 1)
     (vertico-indexed-mode 1)
-    (cl-pushnew 'vertico-repeat-history savehist-additional-variables))
+
+    (pushnew! savehist-additional-variables 'vertico-repeat-history)
   :config
   (csetq vertico-count 10
          vertico-scroll-margin 8
@@ -370,20 +475,21 @@ DEFS is a plist associating completion categories to commands."
     "Return a named function to run `vertico-enter' for INDEX."
     `(defun! ,(intern (format "vertico-enter-index-%s" index)) ()
        ,(format "Call `vertico-enter' for index %s." index)
+       (interactive)
        (let ((vertico--index ,index))
-         (interactive)
          (vertico-directory-enter))))
 
+  (map global-map
+       "M-," #'vertico-repeat)
   (map vertico-map
-       ";" #'vertico-repeat-last
-       "," #'vertico-repeat-select
+       "C-l" #'vertico-repeat-last
+       "C-s" #'vertico-repeat-select
        "C-l" #'vertico-directory-enter
        "C-j" #'vertico-next
        "C-h" (cmds! (eq 'file (vertico--metadata-get 'category)) #'vertico-directory-up)
        "C-k" #'vertico-previous
        "C-i" #'vertico-insert
        "C-o" #'vertico-first
-
        "<tab>" #'vertico-insert
        "<next>" #'vertico-scroll-up
        "<prior>" #'vertico-scroll-down

@@ -4,8 +4,6 @@
 (require 'core-lib)
 (require 'core-load-paths)
 
-(setq-default eldoc-mode -1)
-
 (defvar elpaca-installer-version 0.6)
 (defvar elpaca-directory (expand-file-name "elpaca/" cache-dir))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
@@ -51,17 +49,18 @@
     ;; Assume :elpaca t unless otherwise specified.
     (setq elpaca-use-package-by-default t)
     (require 'package)
-    (setq package-enable-at-startup nil)
-    (setq package-archives '())
+    (csetq package-enable-at-startup nil)
     (package-initialize)
-    (add-to-list 'package-archives
-                 '("melpa" . "https://melpa.org/packages/") t)))
+    (pushnew! package-archives
+              '("nongnu" . "https://elpa.nongnu.org/nongnu/")
+              '("melpa" . "https://melpa.org/packages/"))))
 
 (require 'core-window)
 (core-handle-popup (rx "*elpaca-log*"))
 ;; don't require `use-package' when loading compiled file; saves a millisecond
 ;; or 2; compiling now saves ~0.1s overall (maybe another 0.1s after general
 ;; rewrite)
+
 (eval-when-compile
   (require 'use-package)
   ;; don't actually need `eval-when-compile' for rest since currently loading
@@ -173,11 +172,9 @@
     (setenv "GPG_AGENT_INFO" nil)  ;; use emacs pinentry
     (setq auth-source-debug t)
     (pinentry-start)
-    
+
     (require 'org-crypt)
     (org-crypt-use-before-save-magic))
-
-
 
 (provide 'core-packages)
 ;;; core-packages.el ends here

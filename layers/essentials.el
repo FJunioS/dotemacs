@@ -55,17 +55,18 @@
 
 (use-package savehist
   :elpaca nil
-  :demand t
   :ensure t
-  :defer 0
   :init
+  (setq
+   savehist-file (concat cache-dir "savehist-backup")
+   save-place-file (concat cache-dir "saveplace")
+   auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
+   auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
+
   (savehist-mode 1)
   (auto-save-mode 1)
   (save-place-mode 1)
   :config
-  (csetq-default
-   savehist-file (concat cache-dir "savehist-backup")
-   save-place-file (concat cache-dir "saveplace"))
   (csetq history-length 3000 ; from 300
          search-ring-max 150 ; from 16
          mark-ring-max 100
@@ -90,9 +91,7 @@
 
   (csetq-default
    auto-save-default t
-   auto-save-include-big-deletions t
-   auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
-   auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
+   auto-save-include-big-deletions t)
 
   (add-hook! 'savehist-save-hook
     (defun savehist-remove-unprintable-registers-h ()
@@ -137,6 +136,10 @@ the unwritable tidbits."
   (vimish-fold-global-mode))
 
 (use-package 0x0)
+(use-package tmr
+  :ensure t
+  :custom
+  (tmr-sound-file (concat emacs-assets-dir "singing-bowl.wav")))
 
 (use-package apropos
   :elpaca nil
@@ -158,11 +161,6 @@ the unwritable tidbits."
   (general-def helpful-mode
     :definer 'minor-mode
     "q" #'quit-window)
-  :init
-  ;; using this instead of binding them directly allows taking an alternate action
-  ;; without also opening the helpful buffer
-  (setq counsel-describe-function-function #'helpful-callable
-        counsel-describe-variable-function #'helpful-variable)
   :config
   (noct-handle-popup help-mode)
   (noct-handle-popup (rx "*Help*"))
@@ -200,8 +198,9 @@ the unwritable tidbits."
   (global-map "C-x C-r" #'recentf)
   (setq recentf-auto-cleanup nil
         recentf-max-saved-items 200)
-  (csetq recentf-exclude '("^/tmp/emacs/.*" "^/var/folders\\.*" "COMMIT_EDITMSG\\'"
-                          ".*-autoloads\\.el\\'" "[/\\]\\.elpa/" "\\*/bookmarks\\'"))
+  (csetq recentf-exclude '("^/tmp/emacs/.*" ".*/\\.cache/emacs" ".*/\\.rustup" "^/var/folders\\.*" "^/$"
+                           "COMMIT_EDITMSG\\'" ".*-autoloads\\.el\\'" "[/\\]\\.elpa/\\'" ".*/bookmarks\\'"
+                           "/nix/store/"))
 
   (setq recentf-auto-cleanup (if (daemonp) 300))
   (add-hook 'kill-emacs-hook #'recentf-save-list)
@@ -219,14 +218,13 @@ the unwritable tidbits."
 (use-package which-key
   :defer 1
   :ghook ('pre-command-hook nil nil nil t)
-  :general
-  (leader/toggle "W" #'which-key-mode)
   ;; replace `where-is'; don't need because can show in M-x
-  (help-map "w" #'which-key-show-top-level)
   :init
   ;; should be set before loading
   (setq which-key-idle-delay 0.3)
   :config
+  (map ju-toggle-map "W" #'which-key-mode)
+  (map help-map "w" #'which-key-show-top-level)
   (setq which-key-side-window-location 'bottom
         which-key-sort-order #'which-key-prefix-then-key-order
         which-key-add-column-padding 1

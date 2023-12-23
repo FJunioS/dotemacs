@@ -397,12 +397,11 @@ Uses 4 pixels FHD and 8 on 4k."
   "An alias for `setq-default'."
   `(setq-default ,@settings))
 
-(defmacro create-keymap (key)
-  "Creates a keymap KEY."
-  (let ((k (intern (concat (symbol-name key) "-map"))))
+(defmacro create-keymap (key &rest docstring)
+"Create a keymap KEY with DOCSTRING."
     `(progn
-       (defvar ,k (make-sparse-keymap) ,(concat (symbol-name key) "-map."))
-       (defalias ',key ,k))))
+       (defvar ,key (make-sparse-keymap) ,docstring)
+       (defalias ',key ,key ,(format "An alias for %s keymap." (symbol-name key)))))
 
 (defmacro map (mode &rest keymaps)
   `(progn
@@ -563,8 +562,7 @@ advised)."
   "Return the basename of FILE."
   (file-name-sans-extension (file-name-nondirectory file)))
 
-(defvar escape-hook nil
-  "A hook run when `C-g' is pressed (or ESC in normal mode, for evil users).")
+(defvar escape-hook nil)
 
 (defun escape (&optional interactive)
   "Run `escape-hook'.
@@ -679,7 +677,7 @@ BODY is run periodically even if Emacs is actively being used."
      (run-with-idle-timer ,idle-interval t (lambda () ,@body))))
 
 ;;;###autoload
-(defun kill-this-buffer+ ()
+(defun +kill-this-buffer ()
   "`kill-this-buffer' with no menu-bar checks.
 `kill-this-buffer' is supposed to be called from the menu bar.
 See https://www.reddit.com/r/emacs/comments/64xb3q/killthisbuffer_sometimes_just_stops_working/."
@@ -708,14 +706,14 @@ See https://www.reddit.com/r/emacs/comments/64xb3q/killthisbuffer_sometimes_just
     (message (format "Closing %s ..." major-mode))))
 
 ;;;###autoload
-(defun kill-buffer-delete-window ()
+(defun +kill-window ()
   "Kill the current buffer and then delete the current window."
   (interactive)
   (if (one-window-p)
-      (kill-this-buffer+)
+      (+kill-this-buffer)
     (progn
       (when (buffer-unique-p)
-        (kill-this-buffer+))
+        (+kill-this-buffer))
       (delete-window))))
 
 (defun kill-other-buffers ()

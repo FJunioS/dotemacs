@@ -3,22 +3,46 @@
 ;;; Code:
 (require 'core-packages)
 (require 'core-lib)
+(require 'keymaps)
 
-(create-keymap leader)
-(create-keymap toggle)
-
-(global-map "C-c" leader-map)
-(map leader-map "t" toggle-map)
-
+(use-package popper
+  :ensure t
+  :bind (("C-#" . popper-toggle)
+         ("M-#" . popper-cycle)
+         ("C-M-#" . popper-toggle-type)
+         ("C-`" . popper-kill-latest-popup))
+  :init
+  (csetq popper-display-control nil
+         popper-group-function nil
+         popper-reference-buffers (list
+                                   (rx "*Messages*")
+                                   (rx "Output*" eol)
+                                   (rx "*eldoc*") 'eldoc-mode
+                                   (rx "*Async Shell Command*")
+                                   (rx bol "*elpaca-" (* any))
+                                   'help-mode 'helpful-mode
+                                   'compilation-mode
+                                   "^\\*eat.*\\*$"    'eat-mode
+                                   "^\\*term.*\\*$"   'term-mode
+                                   "^\\*vterm.*\\*$"  'vterm-mode
+                                   "^\\*shell.*\\*$"  'shell-mode
+                                   "^\\*eshell.*\\*$" 'eshell-mode))
+  (popper-mode 1))
 
 (define-key input-decode-map (kbd "C-[") [control-bracketleft])
 (define-key input-decode-map (kbd "ESC") [escape])
 
 ;; Dvorak specific remaps
-(map key-translation-map "C-h" "C-x")
-(map key-translation-map "C-t" "C-f")
+(map key-translation-map
+     "C-h" "C-x"
+     "C-x" "C-h")
 
-(global-map "C-@" help-map)
+(map key-translation-map
+     "C-t" "C-f"
+     "C-f" "C-t")
+
+(global-map "M-t" 'forward-word
+            "C-M-t" #'forward-sexp)
 
 ;; Disable arrow keys to force me to use emacs navigation
 (global-map "<left>" nil
@@ -26,18 +50,34 @@
             "<up>" nil
             "<down>" nil)
 
-;; Most common actions
-(global-map "M-k" #'kill-this-buffer+
-            "C-," #'execute-extended-command
-            "C-\\" #'universal-argument
+(global-map "C-," #'execute-extended-command
+            "C-u" #'universal-argument
             "C-x C-s" #'manual-save-buffer
-            "M-'" #'save-buffer
             "M-<right>" #'next-buffer
             "M-<left>"  #'previous-buffer)
 
+;; I keep mistakenly using this more than I should
+(global-map "C-x C-l" nil
+            "C-x C-n" nil
+            "C-c C-l" #'downcase-region
+            "C-c C-n" #'set-goal-column)
+
 (map emacs-lisp-mode-map
      "C-c C-c" #'eval-defun
-     "C-x C-e" #'+eval-region-or-sexp)
+     "C-x C-e" #'pp-eval-last-sexp)
+
+(global-map "<escape>" #'escape
+            "C-h =" #'describe-char)
+
+;; bookmark
+(map ju-bookmark-map
+     "b" #'consult-bookmark
+     "s" #'bookmark-set)
+
+;; Misc ------------------------------------------
+
+(define-key minibuffer-local-map (kbd "C-n") 'next-line-or-history-element)
+(define-key minibuffer-local-map (kbd "C-p") 'previous-line-or-history-element)
 
 (with-eval-after-load 'woman
   (map woman-node-map
@@ -45,35 +85,60 @@
        "[[" 'WoMan-previous-manpage
        "r" 'woman-reformat-last-file))
 
-(global-map
- "<escape>" #'escape
- "C-h =" #'describe-char
- "M-k"   #'kill-this-buffer)
-
-(map leader-map
-     "*" #'delete-window
-     "(" #'delete-other-windows
-     "o" #'delete-other-windows
-     "-" #'split-window-below
-     "v" #'split-window-right)
-
 ;;--------------------------------------------------
+
 (use-package avy
   :ensure t
-  :bind (("C-u" . avy-goto-char)
-         ("C-c C-x" . avy-goto-line)))
+  :commands (avy-goto-word-1 avy-goto-char-2 avy-goto-char-timer)
+  :config
+  (map global-map
+       "M-h"     #'avy-goto-char-2
+       "M-s"     (cons "Avy" nil)
+       "M-s y"   (cons "Avy: Copy line"   #'avy-copy-line)
+       "M-s M-y" (cons "Avy: Copy region" #'avy-copy-region)
+       "M-s M-n" (cons "Avy: Line below"  #'avy-goto-line-below)
+       "M-s M-p" (cons "Avy: Line above"  #'avy-goto-line-above)
+       "M-s M-k" (cons "Avy: Kill Line"   #'avy-kill-whole-line)
+       "M-s C-w" (cons "Avy: Kill Region" #'avy-kill-region)
+       "M-s M-w" (cons "Avy: Save Region" #'avy-kill-ring-save-region)
+       "M-s t"   (cons "Avy: Move Line"   #'avy-move-line)
+       "M-s M-t" (cons "Avy: Move Region" #'avy-move-region)
+       "M-g l"   (cons "Avy: EOL (end of line)" #'avy-goto-end-of-line))
+
+  (setq avy-single-candidate-jump nil)
+  (setq avy-timeout-seconds 0.20)
+  (setq avy-keys '(?a ?o ?e ?u ?i
+                      ?h ?n ?r
+                      ?k ?x ?b)))
 
 (use-package ace-window
   :ensure t
   :bind (("C-x o" . ace-window)
-         ("M-o" . ace-window)))
+         ("M-]" . delete-window)
+         ("C-]" . ace-window))
+  :config
+  (csetq aw-dispatch-always nil
+         aw-scope 'global
+         aw-background nil
+         aw-keys '(?h ?t ?n ?u ?e ?o ?a ?i))
+  (csetq aw-dispatch-alist
+        '((?d aw-delete-window "Delete Window")
+          (?s aw-swap-window "Swap Windows")
+          (?m aw-move-window "Move Window")
+          (?c aw-copy-window "Copy Window")
+          (?j aw-switch-buffer-in-window "Select Buffer")
+          (?\t aw-flip-window)
+          (?b aw-switch-buffer-other-window "Switch Buffer Other Window")
+          (?c aw-split-window-fair "Split Fair Window")
+          (?v aw-split-window-vert "Split Vert Window")
+          (?- aw-split-window-horz "Split Horz Window")
+          (?D delete-other-windows "Delete Other Windows")
+          (?? aw-show-dispatch-help))))
 
 (use-package repeat
   :elpaca nil
   :init
-  ;; Disable the built-in repeat-mode hinting
-  (csetq repeat-echo-function #'ignore)
-
+  (repeat-mode 1)
   ;; Spawn or hide a which-key popup
   (advice-add 'repeat-post-hook :after
               (defun repeat-help--which-key-popup ()
@@ -86,14 +151,35 @@
                        (which-key--create-buffer-and-show
                         nil (symbol-value keymap))))
                   (which-key--hide-popup))))
+
   (defvar org-link-repeat-map
     (let ((map (make-sparse-keymap)))
       (define-key map (kbd "n") 'org-next-link)
       (define-key map (kbd "p") 'org-previous-link)
       map))
-
   (dolist (cmd '(org-next-link org-previous-link))
     (put cmd 'repeat-map 'org-link-repeat-map))
+
+    (defvar switch-buffer-repeat-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "<right>") 'next-buffer)
+      (define-key map (kbd "<left>") 'previous-buffer)
+      (define-key map (kbd "k") '+kill-this-buffer)
+      (define-key map (kbd "n") 'next-buffer)
+      (define-key map (kbd "p") 'previous-buffer)
+      map))
+  (dolist (cmd '(next-buffer previous-buffer))
+    (put cmd 'repeat-map 'switch-buffer-repeat-map))
+
+    (defvar kill-buffer-repeat-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "k") '+kill-this-buffer)
+      (define-key map (kbd "n") 'next-buffer)
+      (define-key map (kbd "p") 'previous-buffer)
+      map))
+  (dolist (cmd '(+kill-this-buffer))
+    (put cmd 'repeat-map 'kill-buffer-repeat-map))
+
   (defvar windmove-repeat-map
     (let ((map (make-sparse-keymap)))
       (define-key map (kbd "<left>") 'windmove-left)
@@ -105,14 +191,13 @@
       (define-key map (kbd "<down>") 'windmove-down)
       (define-key map (kbd "S-<down>") 'windmove-swap-states-down)
       map))
-
   (map-keymap
    (lambda (_key cmd)
      (when (symbolp cmd)
        (put cmd 'repeat-map 'windmove-repeat-map)))
    windmove-repeat-map)
-  )
 
+  )
 
 (use-package repeat-help
   :ensure t
@@ -160,6 +245,10 @@
   :init
   (drag-stuff-global-mode)
   :config
+  (with-eval-after-load 'meow
+    (meow-normal-define-key
+     '("M-p" . drag-stuff-up)
+     '("M-n" . drag-stuff-down)))
   (global-key "M-<up>"   #'drag-stuff-up
               "M-<down>" #'drag-stuff-down))
 
@@ -206,15 +295,9 @@
        (forward-char)) ; Cursor stay on top of symbol
      ))
 
-(general-def 'visual
-  "C-b" (wrap-region-with-symbol! "*")
-  "\"" (wrap-region-with-symbol! "\"")
-  "_" (wrap-region-with-symbol! "_")
-  "'" (wrap-region-with-symbol! "'")
-  "`" (wrap-region-with-symbol! "`" "'")
-  "(" (wrap-region-with-symbol! "(" ")")
-  "[" (wrap-region-with-symbol! "[" "]")
-  "{" (wrap-region-with-symbol! "{" "}"))
+(map emacs-lisp-mode-map
+     "'" (lambda () (interactive) (insert-char ?'))
+     "#" (lambda () (interactive) (insert "#'")))
 
 ;;; Xah Lee Keymaps:
 (defvar xah-brackets '("“”" "()" "[]" "{}" "<>"
@@ -534,7 +617,7 @@ the buffer works like a pager."
     (setq-local cursor-type (or hide-cursor--original
                                 t))))
 
-(map toggle-map "h" 'hide-cursor-mode)
+(map ju-toggle-map "h" 'hide-cursor-mode)
 (global-map "<f7>" 'hide-cursor-mode)
 
 (provide 'navigation)

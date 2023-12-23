@@ -18,21 +18,24 @@
             "C-r" #'dired-rsync))
 
 (use-package dirvish
+  :bind (("C-x C-j" . dirvish))
   :init
   ;; (csetq dired-omit-files
   ;;        (concat dired-omit-files "\\|^\\..*$"))
+  (pushnew! savehist-additional-variables 'dirvish--history)
   (dirvish-override-dired-mode)
-
   :config
-  (csetq dired-kill-when-opening-new-dired-buffer nil
-         dired-clean-confirm-killing-deleted-buffers nil
-         dired-dwim-target t
+  (dirvish-peek-mode 1) ; Preview files in minibuffer
+
+  (csetq dired-dwim-target t
          dired-recursive-copies 'always
          dired-recursive-deletes 'top
+         dirvish-preview-dispatchers '(image gif video audio epub pdf archive)
          delete-by-moving-to-trash t)
 
   (setq dired-mouse-drag-files t) ; added in Emacs 29
   (setq mouse-drag-and-drop-region-cross-program t)
+
   (csetq dired-listing-switches
          ;; -v - natural sort numbers
          ;; --almost-all - all except . and ..
@@ -40,10 +43,16 @@
                  "--time-style=long-iso"))
 
   (csetq dirvish-quick-access-entries
-         '(("h" "~/"                          "Home")
-           ("d" "~/Downloads/"                "Downloads")
-           ("m" "/mnt/"                       "Drives")
-           ("t" "~/.local/share/Trash/files/" "TrashCan")))
+         '(
+           ("r" "/"            "Root")
+           ("h" "~/"           "Home")
+           ("m" "/mnt/"        "Mount")
+           ("d" "~/dev/"       "Dev")
+           ("s" "~/sync/"      "Sync")
+           ("c" "~/.config/"   "Config")
+           ("D" "~/Downloads/" "Downloads")
+           ("t" "~/.local/share/Trash/files/" "TrashCan")
+           ))
 
   ;; (csetq dired-listing-switches (string-join '("--all"
   ;;                                              "--human-readable"
@@ -69,20 +78,19 @@
            image-dired-temp-image-file        (funcall my/file "temp-image" image-dired-dir)
            image-dired-temp-rotate-image-file (funcall my/file "temp-rotate-image" image-dired-dir)))
 
-
-  ;; (dirvish-define-attribute symlink-arrow
-  ;;   "Show -> on symlinks but not full target."
-  ;;   :when (and dired-hide-details-mode
-  ;;              (default-value 'dired-hide-details-hide-symlink-targets))
-  ;;   (when (< (+ f-end 4) l-end)
-  ;;     (let ((ov (make-overlay (+ f-end 4) l-end)))
-  ;;       (overlay-put ov 'invisible t) ov)))
+  (dirvish-define-attribute symlink-arrow
+    "Show -> on symlinks but not full target."
+    :when (and dired-hide-details-mode
+               (default-value 'dired-hide-details-hide-symlink-targets))
+    (when (< (+ f-end 4) l-end)
+      (let ((ov (make-overlay (+ f-end 4) l-end)))
+        (overlay-put ov 'invisible t) ov)))
 
   (general-pushnew (cons (list "png" "jpg" "jpeg" "webp") (list "mvi" "%f"))
                    dirvish-open-with-programs)
 
   (csetq dirvish-yank-overwrite-existing-files 'never
-         dirvish-attributes '(all-the-icons file-size collapse vc-state)
+         dirvish-attributes '(all-the-icons file-size file-time collapse subtree-state vc-state)
          dirvish-yank-new-name-style 'append-to-filename
          dirvish-yank-new-name-style 'append-to-ext)
 
@@ -92,21 +100,14 @@
                                     :right
                                     (sort yank index)))
 
-  ;; (csetq dirvish-header-line-format
-  ;;        '(:left (path symlink)
-  ;;                :right (free-space))
-  ;;        dirvish-layout-recipes
-  ;;        (list '(0 0 0.8)
-  ;;              '(0 0 0.4)
-  ;;              dirvish-default-layout))
-  :general
-  (def 'normal 'dirvish-mode-map
+  (map dirvish-mode-map
        ;; https://github.com/alexluigit/dirvish/issues/186
        "<tab>" #'dirvish-subtree-toggle
        "RET" #'dired-find-file
 
        "A" #'gnus-dired-attach
        "a" #'dirvish-quick-access
+       "b" #'dired-up-directory
        "D" #'dired-do-delete
        "d" #'dirvish-dispatch
        "e" #'dirvish-emerge-menu
@@ -118,34 +119,34 @@
        "M" #'dirvish-layout-switch
        "i" #'dired-find-file
        "p" #'dired-previous-line
-       "n" #'(lambda () (interactive)
-             (progn (dired-previous-line 1)
-                    (dired-next-line 1)))
-       "h" '(:ignore t :which-key "history")
+       "n" #'dired-next-line
+
+       "h" nil
        "hp" #'dirvish-history-go-backward
        "hn" #'dirvish-history-go-forward
        "hj" #'dirvish-history-jump
        "hl" #'dirvish-history-last
 
        "o" #'dirvish-quicksort
+       "q" #'dirvish-quit
+       "s" #'dirvish-quicksort
+       "S" #'dirvish-setup-menu
+       "t" #'dired-find-file
+       "u" #'dired-unmark
+       "U" #'dired-unmark-all-marks
+       "y" #'dirvish-yank-menu
+       "z" #'dirvish-setup-menu
+
        " " #'dired-next-line
 
-       "C-y" '(:ignore t :which-key "paste")
+       "C-y" nil
        "C-y p" #'dirvish-yank
        "C-y m" #'dirvish-move
        "C-y l" #'dirvish-symlink
        "C-y L" #'dirvish-relative-symlink
        "C-y h" #'dirvish-hardlink
 
-       "q" #'dirvish-quit
-
-       "s" #'dirvish-quicksort
-       "S" #'dirvish-setup-menu
-
-       "u" #'dired-unmark
-       "U" #'dired-unmark-all-marks
-
-       "%" '(:ignore t :wk "Regexp")
+       "%" nil
        "%u" 'dired-upcase
        "%l" 'dired-downcase
        "%d" 'dired-flag-files-regexp
@@ -158,7 +159,7 @@
        "%S" 'dired-do-symlink-regexp
        "%&" 'dired-flag-garbage-files
 
-       "*" '(:ignore t :wk "Mark files")
+       "*" nil
        "**" 'dired-mark-executables
        "*/" 'dired-mark-directories
        "*@" 'dired-mark-symlinks
@@ -173,18 +174,15 @@
        "* <delete>" 'dired-unmark-backward
        "* C-n" 'dired-next-marked-file
        "* C-p" 'dired-prev-marked-file
+       )
 
-       "y"   #'dirvish-yank-menu
-
-       "z"  #'dirvish-setup-menu)
-  :gfhook
   ;; truncate long file names instead of wrapping
-  ('dirvish-find-entry-hook
-   (lambda (&rest _) (setq-local truncate-lines t)))
-  ('dirvish-preview-setup-hook (defun dirvish--preview-setup ()
-                                 (display-line-numbers-mode -1)
-                                 (setq-local mode-line-format nil
-                                             truncate-lines t))))
+  (add-hook 'dirvish-find-entry-hook (lambda (&rest _)
+                                       (setq-local truncate-lines t)))
+  (add-hook 'dirvish-preview-setup-hook (defun dirvish--preview-setup ()
+                                          (display-line-numbers-mode -1)
+                                          (setq-local mode-line-format nil
+                                                      truncate-lines t))))
 
 (provide 'dir)
 ;; dir.el ends here

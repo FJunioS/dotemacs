@@ -4,6 +4,19 @@
 (require 'core-lib)
 (require 'core-packages)
 
+(use-package beacon
+  :ensure t
+  :init
+  (beacon-mode 1))
+
+(csetq display-buffer-alist nil
+       indicate-empty-lines t)
+
+(+handle-popup (rx "Output*" eol))
+(+handle-popup (rx "*Warnings*") t)
+(+handle-popup (rx "*eldoc*") t)
+(+handle-popup (rx bol "*elpaca-" (* any)) t)
+
 ;; ** Font
 ;; (set-fontset-font t #xFE0F spec-1)                ;; Variation Selector 16
 ;; (set-fontset-font t '(#x1F1E6 . #x1F1FF) spec-2)  ;; Regional Indicator Syms
@@ -14,28 +27,39 @@
   ;; Acts on all modes for text editing (including org, markdown, etc.).
   (text-mode . mixed-pitch-mode))
 
-(set-language-environment "UTF-8")
-(set-default-coding-systems 'utf-8-unix)
-;; (when (member "Fantasque Sans Mono" (font-family-list))
-;;   (set-frame-font "Fantasque Sans Mono-16" t t))
-(when (member "Fantasque Sans Mono" (font-family-list))
-  (set-frame-font "Fantasque Sans Mono-14" t))
+(defun font-setup ()
+  "Load customizations that apply custom settings to font display."
+  (interactive)
+  (set-language-environment "UTF-8")
+  (set-default-coding-systems 'utf-8-unix)
+  (when (member "Iosevka Comfy" (font-family-list))
+    (set-frame-font "Iosevka Comfy Motion 14")
+    (add-to-list 'default-frame-alist
+                 '(font . "Iosevka Comfy Motion 14"))
+    (face-remap-add-relative 'fixed-pitch :family "Iosevka Comfy Motion"))
 
-;; Unicode
-(csetq use-default-font-for-symbols nil)
-(set-fontset-font t 'unicode (face-attribute 'default :family))
-(set-fontset-font t 'unicode "Symbola" nil 'append)
-;; Emojis
-(set-fontset-font t '(#x2300 . #x27e7) "Twemoji")
-(set-fontset-font t '(#x2300 . #x27e7) "Noto Color Emoji" nil 'append)
-(set-fontset-font t '(#x27F0 . #x1FAFF) "Twemoji")
-(set-fontset-font t '(#x27F0 . #x1FAFF) "Noto Color Emoji" nil 'append)
+  ;; Unicode
+  (csetq use-default-font-for-symbols nil)
+  (set-fontset-font t 'unicode (face-attribute 'default :family))
+  (set-fontset-font t 'unicode "Symbola" nil 'append)
+  ;; Emojis
+  (set-fontset-font t '(#x2300 . #x27e7) "Twemoji")
+  (set-fontset-font t '(#x2300 . #x27e7) "Noto Color Emoji" nil 'append)
+  (set-fontset-font t '(#x27F0 . #x1FAFF) "Twemoji")
+  (set-fontset-font t '(#x27F0 . #x1FAFF) "Noto Color Emoji" nil 'append))
+
+(if (daemonp)
+    (add-hook 'after-make-frame-functions
+              (lambda (frame)
+                (select-frame frame)
+                (font-setup)))
+  (font-setup))
+(font-setup)
 
 (custom-set-faces
- '(default ((t :family "Fantasque Sans Mono")))
- '(fixed-pitch ((t :family "Fantasque Sans Mono")))
- '(mode-line ((t (:family "DejaVu Sans Mono"))))
- '(variable-pitch ((t (:family "Noto Serif")))))
+ '(fixed-pitch ((t :inherit :family "Fantasque Sans Mono")))
+ '(mode-line ((t :inherit :family "DejaVu Sans Mono")))
+ '(variable-pitch ((t :inherit :family "Noto Serif"))))
 
 (add-hook 'org-mode-hook (lambda () (variable-pitch-mode t)))
 (add-hook 'markdown-mode-hook (lambda () (variable-pitch-mode t)))
@@ -68,6 +92,7 @@
   (highlight-defined-mode 1))
 
 (use-package mini-echo
+  :disabled
   :custom
   (mini-echo-right-padding 10)
   :init
@@ -306,7 +331,11 @@
           '(:eval
             (mode-line-fill-right 'mode-line
                                   (reserve-middle/right)))
-          mode-line-align-right)))
+          mode-line-align-right))
+  (defvar modeline mode-line-format)
+  (setq header-line-format nil)
+  (setq mode-line-format modeline)
+  )
 
 (provide 'ui)
 ;;; ui.el ends here

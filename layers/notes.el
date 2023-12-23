@@ -5,6 +5,12 @@
 ;;; Code:
 (require 'core-packages)
 (require 'core-lib)
+(require 'keymaps)
+
+(use-package dogears
+  :ensure t
+  :init
+  (dogears-mode 1))
 
 ;; Denote extensions
 (use-package consult-notes
@@ -16,9 +22,33 @@
   (when (require 'consult-notes nil t)
     (csetq consult-notes-file-dir-sources (list `("All" 'a "~/notes")))
     (consult-notes-denote-mode))
-  (global-key
-   "C-c nf" #'consult-notes
-   "C-c ns" #'consult-notes-search-in-all-notes))
+  (map leader-map "C-n" #'consult-notes)
+  (map ju-notes-map
+   "f" #'consult-notes
+   "s" #'consult-notes-search-in-all-notes))
+
+(use-package org-sticky-header
+  :ensure t
+  :init
+  (add-hook 'org-mode-hook 'org-sticky-header-mode))
+
+(use-package org-gtd
+  :ensure t
+  :after org
+  :init
+  (setq ju-gtd-map (make-sparse-keymap))
+  (map ju-notes-map
+       "g" (cons "GTD" ju-gtd-map))
+
+  (map ju-gtd-map
+       "c" (cons "GTD: Capture" #'org-gtd-capture)
+       "p" (cons "GTD: Process" #'org-gtd-process-inbox)
+       "e" (cons "GTD: Engage" #'org-gtd-engage)
+       "o" (cons "GTD: Organize" #'org-gtd-organize))
+
+  (csetq org-gtd-update-ack "3.0.0"
+         org-gtd-directory user-notes-dir)
+  (org-gtd-mode 1))
 
 ;; Easy insertion of weblinks
 (use-package org-web-tools)
@@ -29,8 +59,11 @@
   :init
   (persistent-scratch-setup-default)
   (persistent-scratch-autosave-mode)
-  :general
-  ("C-c x r" #'scratch-buffer))
+  :custom
+  (persistent-scratch-save-file (concat cache-dir "permanent-scratch.org"))
+  (persistent-scratch-backup-directory (concat cache-dir "perm-scratch/"))
+  :config
+  (map ju-menu-map "x" #'scratch-buffer))
 
 ;; Modernise Org mode interface
 (use-package olivetti
@@ -43,6 +76,7 @@
   (require 'denote-org-dblock)
   (denote-rename-buffer-mode t)
   :hook
+  (find-file-hook . denote-link-buttonize-buffer)
   (dired-mode . denote-dired-mode)
   :custom-face
   (denote-faces-link ((t (:slant italic))))
@@ -54,39 +88,39 @@
                            "politics"
                            "economics"))
   :config
+  (defun my-denote-tmr ()
+    (interactive)
+    (tmr "10" "Practice writing in my journal"))
+  (add-hook 'denote-journal-extras-hook 'my-denote-tmr)
+
   (csetq denote-directory user-notes-dir)
-  (map leader-map
-       "n n" #'denote-create-note
-       "n j" #'denote-journal-extras-new-or-existing-entry
-       "n d" #'denote-date
-       "n i" #'denote-link-or-create
-       "n l" #'denote-find-link
-       "n b" #'denote-find-backlink
-       "n D" #'denote-org-dblock-insert-links
-       "n r" #'denote-rename-file-using-front-matter
-       "n R" #'denote-rename-file
-       "n k" #'denote-keywords-add
-       "n K" #'denote-keywords-remove))
+  (map ju-notes-map
+       "n" #'denote-create-note
+       "j" #'denote-journal-extras-new-or-existing-entry
+       "d" #'denote-date
+       "i" #'denote-link-or-create
+       "l" #'denote-find-link
+       "b" #'denote-find-backlink
+       "D" #'denote-org-dblock-insert-links
+       "r" #'denote-rename-file-using-front-matter
+       "R" #'denote-rename-file
+       "k" #'denote-keywords-add
+       "K" #'denote-keywords-remove))
 
 (use-package org
   :elpaca '(org :type built-in)
-  :general
-  ("C-c a" #'org-agenda)
-    (general-def 'normal 'org-mode-map
-    "C-t" #'+org-toggle-todo-and-fold
-    "TAB" #'org-cycle
-    "K" #'org-move-subtree-up
-    "J" #'org-move-subtree-down
-    "L" #'org-demote-subtree
-    "H" #'org-promote-subtree
-    "SPC '" #'org-edit-src-code)
-  (general-def 'normal 'org-src-mode-map
-    "SPC '" #'org-edit-src-exit
-    "SPC k" #'org-edit-src-abort)
+  :config
+  (map org-mode-map
+       "C-t" #'+org-toggle-todo-and-fold
+       "TAB" #'org-cycle
+       "<up>" #'org-move-subtree-up
+       "<down>" #'org-move-subtree-down
+       "<left>" #'org-demote-subtree
+       "<right>" #'org-promote-subtree)
+
   (general-def 'org-mode-map
     "C-," #'execute-extended-command
     "C-c C-d" #'+org-toggle-todo-and-fold)
-  :config
   (csetq org-capture-bookmark nil)
   (setq require-final-newline t)
   (setq org-directory (expand user-notes-dir)
@@ -94,7 +128,7 @@
 
   (require '+org)
   ;; run after a resettable delay of 0.3 seconds.
-  (debounce! 'org-agenda-do-context-action 0.3)
+;;  (debounce! 'org-agenda-do-context-action 0.3)
   (setq org-tab-first-hook #'+org-cycle-only-current-subtree-h)
 
   ;; display images
@@ -217,8 +251,9 @@
 (use-package org-noter)
 (use-package org-drill)
 (use-package org-appear
-
-  :hook (org-mode-hook . org-appear-mode))
+  :ensure t
+  :init
+  (add-hook 'org-mode-hook 'org-appear-mode))
 
 (defvar emacs-assets-dir (expand "assets/" emacs-dir))
 
@@ -356,10 +391,6 @@
             (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
         (?w "Work TODO" entry
             (file "~/sync/notes/work.org") "* TODO %^{Title}")))
-
-;; Calendar
-(with-eval-after-load 'evil-mode
-  (evil-set-initial-state 'calendar-mode 'normal))
 
 (provide 'notes)
 ;;; notes.el ends here

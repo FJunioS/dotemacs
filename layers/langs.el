@@ -1,4 +1,4 @@
-;;; langs.el ---  desc  -*- lexical-binding: t; -*-
+;c;; langs.el ---  desc  -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
 (require 'core-packages)
@@ -20,26 +20,60 @@
 (use-package eldoc
   :ghook 'elpaca-after-init-hook
   :config
-  (setq eldoc-display-functions '(eldoc-display-in-echo-area  eldoc-display-in-buffer))
-  (setq eldoc-idle-delay 0.02
-        eldoc-current-idle-delay 0.01))
+  (setq eldoc-idle-delay 0.5
+        eldoc-current-idle-delay 0.5)
+  (add-to-list 'display-buffer-alist
+               '("\\*eldoc\\*"
+                 (display-buffer-in-side-window)
+                 (side . right)
+                 (slot . 0)
+                 (window-width . 80)
+                 (window-parameters
+                  (no-delete-other-windows . t)))))
 
 (use-package eldoc-box
   :after eldoc)
 
-(use-package flycheck
+(use-package devdocs
+  :ensure t
   :init
-  (global-flycheck-mode)
+  (add-hook 'rust-mode-hook (lambda () (setq-local devdocs-current-docs '("rust")))))
+
+(use-package indent-bars
+  :elpaca (:host github :repo "jdtsmith/indent-bars")
+  :custom
+    (indent-bars-color '(highlight :face-bg t :blend 0.2))
+    (indent-bars-pattern ".")
+    (indent-bars-highlight-current-depth nil)
+    (indent-bars-width-frac 0.1)
+    (indent-bars-pad-frac 0.1)
+    (indent-bars-zigzag nil)
+    (indent-bars-color-by-depth nil)
+    (indent-bars-display-on-blank-lines nil)
+    (indent-bars-treesit-support t)
+    (indent-bars-no-descend-string t)
+    (indent-bars-treesit-ignore-blank-lines-types '("module"))
+  :ensure t
+  :hook ((rustic-mode rust-mode toml-mode yaml-mode lua-mode) . indent-bars-mode))
+
+(use-package flycheck
+  :init (global-flycheck-mode)
   :config
+  ;; Avoid "No file or directory" errors when requiring local packages
+  (eval-and-compile
+    (setq flycheck-emacs-lisp-load-path load-path))
+
   (setq flycheck-display-errors-delay 0.01
          flycheck-idle-change-delay 0.01
          flycheck-idle-buffer-switch-delay 0.01))
 
 (use-package flycheck-eglot
-    :init (global-flycheck-eglot-mode))
+  :ensure t
+  :after eglot
+  :init (global-flycheck-eglot-mode))
 
 (use-package rainbow-mode
-    :init (rainbow-mode)
+  :init (rainbow-mode)
     :ghook 'prog-mode-hook 'text-mode-hook
     :config
     ;; remove highlighting color names (useful only in CSS)
@@ -74,7 +108,7 @@
   (add-hook 'project-find-functions 'aorst/project-find-root))
 
 (use-package projectile
-  :disabled t
+  :disabled
   :ensure t
   :defer 0
   :commands (projectile-project-root

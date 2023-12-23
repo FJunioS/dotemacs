@@ -96,6 +96,14 @@ When SLOT is non-nil, display popup buffers in that SLOT in the side window."
      '(slot . ,slot)
      '(window-height . 0.4)))
 
+(defmacro +handle-popup (condition &optional aside height)
+  "Display popups matching CONDITION in a side window at the top.
+When SLOT is non-nil, display popup buffers in that SLOT in the side window."
+  `(core-handle-window ,condition
+     '(core-display-buffer-reuse-window core-display-buffer-in-side-window)
+     '(side . ,(if aside 'right 'bottom))
+     '(window-height . ,(if height height 0.4))))
+
 (defmacro core-handle-popup-aside-right (condition &optional slot)
   "Display popups matching CONDITION in a side window at the top.
 When SLOT is non-nil, display popup buffers in that SLOT in the side window."

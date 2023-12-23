@@ -14,18 +14,24 @@
     (core-handle-popup-same-window magit-log-select-mode)
     (core-handle-popup-other-window magit-revision-mode)
     (core-handle-popup-other-window-no-select magit-diff-mode))
-  (create-keymap git)
-  (define-key leader-map (kbd "g") git-map)
-  (map git-map
+  (map ju-git-map
        "g" #'magit
        "c" #'magit-clone))
+
+(use-package pcre2el
+  :ensure t)
+
+(use-package magit-todos
+  :ensure t
+  :after magit
+  :init (magit-todos-mode 1))
 
 (use-package forge
   :ensure t
   :after magit)
 
 (use-package git-commit
-:config
+  :config
 ;; so `fill-paragraph' works correctly for bullet points
 (setq git-commit-major-mode 'org-mode)
 (general-add-hook 'git-commit-mode-hook
