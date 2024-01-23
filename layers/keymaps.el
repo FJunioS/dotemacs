@@ -4,8 +4,30 @@
 (require 'core-packages)
 (require 'core-lib)
 
-(map global-map
-     "C-s" #'isearch-forward-regexp)
+(map global-map "C-s" #'isearch-forward-regexp)
+
+(define-key input-decode-map (kbd "C-[") [control-bracketleft])
+(define-key input-decode-map (kbd "ESC") [escape])
+
+;; Disable arrow keys to force me to use emacs navigation
+(global-map "<left>" nil
+            "<right>" nil
+            "<up>" nil
+            "<down>" nil)
+
+(global-map "C-," #'execute-extended-command
+            "C-x C-s" #'manual-save-buffer
+            "M-<right>" #'next-buffer
+            "M-<left>"  #'previous-buffer)
+
+;; I keep mistakenly using this more than I should
+(global-map "C-x C-l" nil
+            "C-x C-n" nil
+            "C-c c C-l" #'downcase-region
+            "C-c c C-n" #'set-goal-column)
+
+(global-map "<escape>" #'escape
+            "C-h =" #'describe-char)
 
 ;;-------------------------------------------------
 ;;                Leader map
@@ -62,10 +84,12 @@
      "v" #'split-window-right
      "k" #'+kill-window)
 
+(global-map "C-;" ju-menu-map)
+
 (map ju-buffer-map
      "k" #'+kill-this-buffer
-     "b" #'ibuffer
-     "s" #'switch-to-buffer)
+     "i" #'ibuffer
+     "b" #'switch-to-buffer)
 (map ju-open-map
      "c" (cons "Emacs Config" (lambda () (interactive) (consult-fd emacs-dir))))
 
@@ -114,15 +138,7 @@
      "r" #'consult-recent-file
      "s" #'manual-save-buffer
      "t" #'find-file
-     "e" (cmds! (equal major-mode 'emacs-lisp-mode) #'pp-eval-last-sexp)
-     )
-
-(use-package meow
-  :ensure t
-  :preface (require '+meow)
-  :init
-  (meow-setup)
-  (meow-global-mode 1))
+     "e" (cmds! (equal major-mode 'emacs-lisp-mode) #'pp-eval-last-sexp))
 
 (provide 'keymaps)
 ;;; keymaps.el ends here
