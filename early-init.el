@@ -1,4 +1,6 @@
-;;; early-init.el --- Personal configuration file -*- lexical-binding: t -*-
+;; -*- lexical-binding: t; -*-
+
+  ;;; early-init.el --- Personal configuration file -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2021-2023  Junio Santos <info@junio.dev>
 
@@ -34,13 +36,6 @@
 ;;
 ;;; Code:
 (require 'cl-lib)
-
-(add-to-list 'load-path (locate-user-emacs-file "core"))
-
-(require 'core-window)
-(core-handle-popup (rx "*Messages*"))
-(core-handle-popup (rx "*Warnings*"))
-(core-handle-popup (rx "*Backtrace*"))
 
 ;; Avoid wasting time loading before init files, also as we are
 ;; going to use Straight this would only delay our startup
@@ -97,9 +92,9 @@
 (setq site-run-file nil
       inhibit-default-init t)
 (set-face-attribute 'default nil
-                    :background "#000" :foreground "#fff")
+                    :background "#1d1e2b" :foreground "#1d1e2b")
 (set-face-attribute 'mode-line nil
-                    :background "#000" :foreground "#fff")
+                    :background "#2c273a" :foreground "#b1c6d3")
 
 ;; By blocking resize events until later, we avoid expensive screen redrawing
 (setq frame-inhibit-implied-resize t)
@@ -115,47 +110,8 @@
 
 (unless (and (daemonp) noninteractive)
   (unless initial-window-system
-    ;; PERF: Inexplicably, `tty-run-terminal-initialization' can sometimes
-    ;;   take 2-3s when starting up Emacs in the terminal. Whatever slows it
-    ;;   down at startup doesn't appear to affect it if it's called a little
-    ;;   later in the startup process, so that's what I do.
-    ;; REVIEW: This optimization is not well understood. Investigate it!
     (define-advice tty-run-terminal-initialization (:override (&rest _) defer)
       (advice-remove #'tty-run-terminal-initialization
                      #'tty-run-terminal-initialization@defer))))
 
-;;   (unless init-file-debug
-;;     ;; (define-advice load-file (:override (file) silence)
-;;     ;;   (load file nil 'nomessage))
-;;
-;;     (put 'mode-line-format 'initial-value (default-toplevel-value 'mode-line-format))
-;;     (setq-default mode-line-format nil)
-;;
-;;     (dolist (buf (buffer-list))
-;;       (with-current-buffer buf (setq mode-line-format nil)))
-;;
-;;     (setq-default inhibit-redisplay t
-;;                   inhibit-message t)
-;;
-;;     ;; COMPAT: Then reset it with advice, because `startup--load-user-init-file'
-;;     ;;   will never be interrupted by errors. And if these settings are left
-;;     ;;   set, Emacs could appear frozen or garbled.
-;;     (defun doom--reset-inhibited-vars-h ()
-;;       (setq-default inhibit-redisplay nil
-;;                     ;; Inhibiting `message' only prevents redraws and
-;;                     inhibit-message nil)
-;;       (redraw-frame))
-;;
-;;     (add-hook 'after-init-hook #'doom--reset-inhibited-vars-h)
-;;     (define-advice startup--load-user-init-file (:after (&rest _) undo-inhibit-vars)
-;;       (when init-file-had-error
-;;         (doom--reset-inhibited-vars-h))
-;;       (unless (default-toplevel-value 'mode-line-format)
-;;         (setq-default mode-line-format (get 'mode-line-format 'initial-value))))
-;;
-;;     (advice-add #'tool-bar-setup :override #'ignore)
-;;     (define-advice startup--load-user-init-file (:before (&rest _) defer-tool-bar-setup)
-;;       (advice-remove #'tool-bar-setup #'ignore)
-;;       (add-transient-hook! 'tool-bar-mode (tool-bar-setup)))))
-;;
-;; (load (expand-file-name "init.el" (file-name-directory load-file-name)) nil 'nomessage)
+;;; early-init.el ends here.

@@ -1,6 +1,5 @@
-;;; core-lib.el --- Core standard library -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
+
 (require 'cl-lib)
 
 (define-error 'config-error "An unexpected config error")
@@ -388,7 +387,7 @@ Uses 4 pixels FHD and 8 on 4k."
 
 ;;;###autoload
 (defmacro csetq (&rest settings)
-    `(progn
+  `(progn
      ,@(cl-loop for (var val) on settings by 'cddr
                 collect `(funcall (or (get ',var 'custom-set) #'set)
                                   ',var ,val))))
@@ -398,10 +397,10 @@ Uses 4 pixels FHD and 8 on 4k."
   `(setq-default ,@settings))
 
 (defmacro create-keymap (key &rest docstring)
-"Create a keymap KEY with DOCSTRING."
-    `(progn
-       (defvar ,key (make-sparse-keymap) ,docstring)
-       (defalias ',key ,key ,(format "An alias for %s keymap." (symbol-name key)))))
+  "Create a keymap KEY with DOCSTRING."
+  `(progn
+     (defvar ,key (make-sparse-keymap) ,docstring)
+     (defalias ',key ,key ,(format "An alias for %s keymap." (symbol-name key)))))
 
 (defmacro map (mode &rest keymaps)
   `(progn
@@ -544,15 +543,15 @@ advised)."
 "make-dir! check if directory already existis before acting"
 (defun make-dir! (dirr)
   (unless (file-exists-p dirr)
-      (make-directory dirr)))
+    (make-directory dirr)))
 
 (defun try! (fn)
-"try execute FN, returning nil if ok, error otherwise."
-(condition-case e
-    (progn
-      (eval fn)
-      nil)
-  (error e)))
+  "try execute FN, returning nil if ok, error otherwise."
+  (condition-case e
+      (progn
+        (eval fn)
+        nil)
+    (error e)))
 
 (defun lib/side-window-p ()
   "Return non-nil if the selected window is a side window."
@@ -629,9 +628,9 @@ INTERACTIVE means that accept the Universal Argument `C-u'"
 (defmacro after-frame! (&rest body)
   "Run BODY after each frame is created, useful for interface customization."
   `(add-hook 'after-make-frame-functions
-          (lambda (frame)
-            (select-frame frame)
-            (lambda () ,body))))
+             (lambda (frame)
+               (select-frame frame)
+               (lambda () ,body))))
 
 (defconst ju//minibuffer-maps
   '(minibuffer-local-map
@@ -699,21 +698,22 @@ See https://www.reddit.com/r/emacs/comments/64xb3q/killthisbuffer_sometimes_just
   "Close the current buffer if its major mode is in the `modes` list."
   (interactive)
   (unless (memq major-mode interactive-modes-alist)
-      (progn
-        (kill-buffer (current-buffer))
-        (unless (one-window-p)
-          (delete-window)))
+    (progn
+      (kill-buffer (current-buffer))
+      (unless (one-window-p)
+        (delete-window)))
     (message (format "Closing %s ..." major-mode))))
 
 ;;;###autoload
-(defun +kill-window ()
+(defun +kill-window (&optional args)
   "Kill the current buffer and then delete the current window."
   (interactive)
   (if (one-window-p)
       (+kill-this-buffer)
-    (progn
-      (when (buffer-unique-p)
-        (+kill-this-buffer))
+    ;; else
+    (when (buffer-unique-p)
+      (+kill-this-buffer))
+    (when args
       (delete-window))))
 
 (defun kill-other-buffers ()
@@ -739,9 +739,9 @@ Useful to use on stuck buffers opened with `emacsclient'"
   (read-only-mode -1)
   (let ((buf-name (buffer-name)))
     (when (string-match "/" buf-name)
-        (setq buf-name (replace-regexp-in-string "/" "-" buf-name)))
-              ;; setq buf-name (replace "/" with "-")
-  (write-file (make-temp-file (concat "/tmp/emacs/" buf-name))))
+      (setq buf-name (replace-regexp-in-string "/" "-" buf-name)))
+    ;; setq buf-name (replace "/" with "-")
+    (write-file (make-temp-file (concat "/tmp/emacs/" buf-name))))
   (kill-buffer (current-buffer)))
 
 (defun insert-or-update-header-footer ()
@@ -838,7 +838,7 @@ nil, it will be set to (list nil)."
 
 ;;;###autoload
 (defun ju--define-transient-function (function hook &optional advice
-                                                    condition)
+                                               condition)
   "Define and return a modified FUNCTION that removes itself from HOOK.
 The new function will automatically remove itself from HOOK after the first time
 it is called. If ADVICE is non-nil, HOOK should specify a function to advise
@@ -924,13 +924,13 @@ passed directly to `remove-hook'."
   `(if (and (not (daemonp)) (display-graphic-p))
        (progn ,@body)
      (ju-add-hook 'server-after-make-frame-hook
-                       (lambda ()
-                         (when (display-graphic-p)
-                           ,@body
-                           t))
-                       nil
-                       nil
-                       #'identity)))
+                  (lambda ()
+                    (when (display-graphic-p)
+                      ,@body
+                      t))
+                  nil
+                  nil
+                  #'identity)))
 
 (defmacro ju-after-tty (&rest body)
   "Run BODY once after the first terminal frame is created."
@@ -938,13 +938,13 @@ passed directly to `remove-hook'."
   `(if (and (not (daemonp)) (not (display-graphic-p)))
        (progn ,@body)
      (ju-add-hook 'server-after-make-frame-hook
-                       (lambda ()
-                         (unless (display-graphic-p)
-                           ,@body
-                           t))
-                       nil
-                       nil
-                       #'identity)))
+                  (lambda ()
+                    (unless (display-graphic-p)
+                      ,@body
+                      t))
+                  nil
+                  nil
+                  #'identity)))
 
 ;;;###autoload
 (defmacro ju-after-init (&rest body)
@@ -956,4 +956,4 @@ If after emacs initialization already, run BODY now."
      (ju-add-hook 'after-init-hook (lambda () ,@body))))
 
 (provide 'core-lib)
-;;; core-lib.el ends here
+;;; core-lib.el ends here.

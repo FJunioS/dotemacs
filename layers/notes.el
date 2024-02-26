@@ -1,135 +1,51 @@
-;;; notes.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;; https://www.reddit.com/r/emacs/comments/d7x7x8/finally_fixing_indentation_of_quoted_lists/
-;; https://emacs.stackexchange.com/questions/10230/how-to-indent-keywords-aligned
-;;; Code:
-(require 'core-packages)
-(require 'core-lib)
-(require 'keymaps)
-
-(use-package dogears
-  :ensure t
-  :init
-  (dogears-mode 1))
-
-;; Denote extensions
-(use-package consult-notes
-  :ensure t
-  :after denote
-  :commands (consult-notes
-             consult-notes-search-in-all-notes)
-  :init
-  (when (require 'consult-notes nil t)
-    (csetq consult-notes-file-dir-sources (list `("All" 'a "~/notes")))
-    (consult-notes-denote-mode))
-  (map leader-map "C-n" #'consult-notes)
-  (map ju-notes-map
-   "f" #'consult-notes
-   "s" #'consult-notes-search-in-all-notes))
-
-(use-package org-sticky-header
-  :ensure t
-  :init
-  (add-hook 'org-mode-hook 'org-sticky-header-mode))
-
-(use-package org-gtd
-  :ensure t
-  :after org
-  :init
-  (setq ju-gtd-map (make-sparse-keymap))
-  (map ju-notes-map
-       "g" (cons "GTD" ju-gtd-map))
-
-  (map ju-gtd-map
-       "c" (cons "GTD: Capture" #'org-gtd-capture)
-       "p" (cons "GTD: Process" #'org-gtd-process-inbox)
-       "e" (cons "GTD: Engage" #'org-gtd-engage)
-       "o" (cons "GTD: Organize" #'org-gtd-organize))
-
-  (csetq org-gtd-update-ack "3.0.0"
-         org-gtd-directory user-notes-dir)
-  (org-gtd-mode 1))
-
-;; Easy insertion of weblinks
-(use-package org-web-tools)
-
-(use-package persistent-scratch
-  :hook
-  (after-init . persistent-scratch-setup-default)
-  :init
-  (persistent-scratch-setup-default)
-  (persistent-scratch-autosave-mode)
-  :custom
-  (persistent-scratch-save-file (concat cache-dir "permanent-scratch.org"))
-  (persistent-scratch-backup-directory (concat cache-dir "perm-scratch/"))
-  :config
-  (map ju-menu-map "x" #'scratch-buffer))
-
-;; Modernise Org mode interface
-(use-package olivetti
-  :demand t
-  :ghook '(org-mode-hook text-mode-hook))
-
-(use-package denote
-  :ensure t
-  :init
-  (require 'denote-org-dblock)
-  (denote-rename-buffer-mode t)
-  :hook
-  (find-file-hook . denote-link-buttonize-buffer)
-  (dired-mode . denote-dired-mode)
-  :custom-face
-  (denote-faces-link ((t (:slant italic))))
-  :custom
-  (denote-known-keywords '("rust"
-                           "emacs"
-                           "computer-science"
-                           "philosophy"
-                           "politics"
-                           "economics"))
-  :config
-  (defun my-denote-tmr ()
-    (interactive)
-    (tmr "10" "Practice writing in my journal"))
-  (add-hook 'denote-journal-extras-hook 'my-denote-tmr)
-
-  (csetq denote-directory user-notes-dir)
-  (map ju-notes-map
-       "n" #'denote-create-note
-       "j" #'denote-journal-extras-new-or-existing-entry
-       "d" #'denote-date
-       "i" #'denote-link-or-create
-       "l" #'denote-find-link
-       "b" #'denote-find-backlink
-       "D" #'denote-org-dblock-insert-links
-       "r" #'denote-rename-file-using-front-matter
-       "R" #'denote-rename-file
-       "k" #'denote-keywords-add
-       "K" #'denote-keywords-remove))
+;; -*- lexical-binding: t; -*-
+(require '+org)
 
 (use-package org
-  :elpaca '(org :type built-in)
+  :ensure
   :config
+  (map ju-notes-map
+       "c" #'org-capture)
   (map org-mode-map
-       "C-t" #'+org-toggle-todo-and-fold
+       "C-t" 'ju-menu-map
+       "C-," #'execute-extended-command
+       "C-c d" #'org-todo
+       "C-c h" #'consult-org-heading
+       "C-c TAB" #'mode-line-other-buffer
+       "C-c C-t" #'+org-toggle-todo-and-fold
+       "C-c C-d" #'org-babel-demarcate-block
        "TAB" #'org-cycle
        "<up>" #'org-move-subtree-up
        "<down>" #'org-move-subtree-down
        "<left>" #'org-demote-subtree
        "<right>" #'org-promote-subtree)
 
-  (general-def 'org-mode-map
-    "C-," #'execute-extended-command
-    "C-c C-d" #'+org-toggle-todo-and-fold)
+  ;; Org Src editing goes on the side (better to edit)
+  (noct-handle-popup (rx "*Org Src " (+ any) "*" eol) nil right)
+
   (csetq org-capture-bookmark nil)
   (setq require-final-newline t)
-  (setq org-directory (expand user-notes-dir)
-        org-default-notes-file (expand "todo.org" user-notes-dir))
+  (setq org-directory user-notes-dir
+        org-default-notes-file (expand "00000000T000011--notes.org" user-notes-dir))
 
-  (require '+org)
   ;; run after a resettable delay of 0.3 seconds.
-;;  (debounce! 'org-agenda-do-context-action 0.3)
+  ;;  (debounce! 'org-agenda-do-context-action 0.3)
   (setq org-tab-first-hook #'+org-cycle-only-current-subtree-h)
+
+  (setq org-use-speed-commands t)
+
+  ;; Allow org snippets with `<`
+  (add-to-list 'org-modules 'org-tempo)
+  (setq org-structure-template-alist
+        '(("c" . "comment")
+          ("e" . "src elisp")
+          ("E" . "example")
+          ("h" . "export html")
+          ("l" . "export latex")
+          ("q" . "quote")
+          ("s" . "src")
+          ("r" . "src rust")
+          ("x" . "export")))
 
   ;; display images
   (setq org-display-remote-inline-images t
@@ -139,7 +55,6 @@
   ;; better default
   (setq org-catch-invisible-edits nil
         org-hide-emphasis-markers t
-        org-return-follows-link t
         org-enforce-todo-dependencies t)
 
   ;; indent
@@ -147,7 +62,6 @@
         org-startup-indented t
         org-list-indent-offset 2
         org-pretty-entities t
-        org-return-follows-link t
         org-cycle-separator-lines 2)
 
   ;; Agenda
@@ -173,14 +87,7 @@
           ("gs" "Computer" tags-todo "studies")
           ("gp" "Projects" tags-todo "projects")))
 
-  (setq org-refile-targets '(("~/notes/todo.org" :maxlevel . 3)
-                             ("~/notes/someday.org" :level . 1)
-                             ("~/notes/tickler.org" :maxlevel . 2)))
-
-  (setq org-agenda-files `(,(expand "agenda.org" org-directory)
-                           "~/notes/todo.org"
-                           "~/notes/someday.org"
-                           "~/notes/tickler.org"))
+  (setq org-agenda-files (list (concat org-directory "00000000T000001--agenda.org")))
 
   ;; Save Org buffers after refiling!
   ;; Removed: fill `recentf' list
@@ -213,43 +120,79 @@
            ("PHONE" :foreground "#a3bbae" :weight bold)))
 
   (add-hook 'kill-emacs-hook #'ju/org--clock-out)
-  :preface
-  (defun ju.org-toggle-todo-and-fold ()
-    (interactive)
+
+  ;; Babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((C . t)
+     (sql . t)
+     (python . t)
+     (emacs-lisp . t)))
+  (setq-default org-confirm-babel-evaluate nil
+                 org-src-fontify-natively t
+                 org-src-tab-acts-natively t)
+
+:preface
+(defun ju.org-toggle-todo-and-fold ()
+  (interactive)
+  (save-excursion
+    (org-back-to-heading t) ;; Make sure command works even if point is
+    ;; below target heading
+    (cond ((looking-at "\*+ TODO")
+           (org-todo "DONE")
+           (outline-hide-subtree))
+          ((looking-at "\*+ DONE")
+           (org-todo "TODO")
+           (outline-hide-subtree))
+          (t (message "Can only toggle between TODO and DONE.")))))
+(size-indication-mode)
+
+(defun ju/org--clock-out()
+  (org-clock-out nil t))
+
+(defun my-org-agenda-skip-all-siblings-but-first ()
+  "Skip all but the first non-done entry."
+  (let (should-skip-entry)
+    (unless (org-current-is-todo)
+      (setq should-skip-entry t))
     (save-excursion
-      (org-back-to-heading t) ;; Make sure command works even if point is
-      ;; below target heading
-      (cond ((looking-at "\*+ TODO")
-             (org-todo "DONE")
-             (outline-hide-subtree))
-            ((looking-at "\*+ DONE")
-             (org-todo "TODO")
-             (outline-hide-subtree))
-            (t (message "Can only toggle between TODO and DONE.")))))
+      (while (and (not should-skip-entry) (org-goto-sibling t))
+        (when (org-current-is-todo)
+          (setq should-skip-entry t))))
+    (when should-skip-entry
+      (or (outline-next-heading)
+          (goto-char (point-max))))))
 
-  (defun ju/org--clock-out()
-    (org-clock-out nil t))
+(defun org-current-is-todo ()
+  (string= "TODO" (org-get-todo-state)))
+) ;; End of `use-package org`
+;; support to append notes on PDF, EPub and others
+(use-package org-noter
+  :ensure t
+  :custom
+  ;; Save the last location you visited and pick it up when you start another session
+  (org-noter-auto-save-last-location t))
 
-  (defun my-org-agenda-skip-all-siblings-but-first ()
-    "Skip all but the first non-done entry."
-    (let (should-skip-entry)
-      (unless (org-current-is-todo)
-        (setq should-skip-entry t))
-      (save-excursion
-        (while (and (not should-skip-entry) (org-goto-sibling t))
-          (when (org-current-is-todo)
-            (setq should-skip-entry t))))
-      (when should-skip-entry
-        (or (outline-next-heading)
-            (goto-char (point-max))))))
+(use-package org-special-block-extras
+  :hook (org-mode . org-special-block-extras-mode)
+  :config
+  (org-defblock noweb-template
+                (:tangle "no" :backend emacs-lisp :noweb yes :noweb-ref nil)
+                "Generate a template for config"))
 
-  (defun org-current-is-todo ()
-    (string= "TODO" (org-get-todo-state))))
+(use-package org-modern
+  :ensure t
+  :hook (org-mode . global-org-modern-mode)
+  :config
+  (set-face-attribute 'org-modern-symbol nil :family fixed-pitch-font))
 
-;;
+(use-package org-pdftools
+  :after org-noter)
 
-(use-package org-noter)
+;; A kind of spaced repetition tool
 (use-package org-drill)
+
+;; Show marks on cursor
 (use-package org-appear
   :ensure t
   :init
@@ -262,11 +205,11 @@
   :after org
   :commands (org-pomodoro-start org-pomodoro)
   :bind (("<f12>" . work-pomodoro))
-  :hook ((org-pomodoro-started . ju/load-window-close-agenda)
-         (org-pomodoro-finished . ju/save-window-show-agenda))
+  ;; :hook ((org-pomodoro-started . ju/load-window-close-agenda)
+  ;;        (org-pomodoro-finished . ju/save-window-show-agenda))
   :config
   ;; Send visual notification when a timer ends
-  (csetq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil))))
+  (csetq alert-user-configuration '(((((:category . "org-pomodoro")) libnotify nil))))
   (csetq org-pomodoro-format "%s"
          org-pomodoro-start-sound (expand "bells.wav" emacs-assets-dir)
          org-pomodoro-finished-sound (expand "bells.wav" emacs-assets-dir)
@@ -276,10 +219,16 @@
          org-pomodoro-clock-break t
          org-pomodoro-manual-break t)
 
+  (defun meditate-pomodoro ()
+    (interactive)
+    (csetq org-pomodoro-length 10)
+    (org-pomodoro-start))
+
   (defun work-pomodoro ()
     (interactive)
-    (csetq org-pomodoro-length 50
-           org-pomodoro-short-break-length 20)
+    (csetq org-pomodoro-length 25
+           org-pomodoro-short-break-length 5
+           org-pomodoro-long-break-length 20)
     (if (not (org-pomodoro-active-p))
         (progn
           (org-pomodoro-start)
@@ -301,11 +250,11 @@
     (jump-to-register "`")))
 
 (use-package org-journal
-  :general
-  (leader/notes
-    "t" '(org-journal-open-current-journal-file :wk "Today's journal")
-    "o" '(org-journal-new-entry :wk "Open journal"))
   :config
+  (map ju-notes-map
+   "t" '(org-journal-open-current-journal-file :wk "Today's journal")
+   "o" '(org-journal-new-entry :wk "Open journal"))
+
   (setq
    org-journal-date-prefix "#+title: "
    org-journal-file-format "%Y-%m-%d.org"
@@ -321,24 +270,32 @@
   (set-face-attribute 'org-superstar-leading nil :height 0.8)
   (org-ellipsis " ⋯")
   (org-superstar-special-todo-items t)
-  (org-superstar-headline-bullets-list '("" "•" "•" "•" "•" "•")) ;;  use char `⁖' if first symbol don't work
+  (org-superstar-headline-bullets-list '("⁖" "•" "•" "•" "•" "•")) ;;  usechar ⁖`'  if first symbol don't work
   (org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?▹) (?- . ?◦)))) ; changes +/- symbols in item lists
 
 (use-package toc-org
-  :ghook 'org-mode-hook 'markdown-mode-hook
   :config
   ;; enable in markdown, too
   (add-hook 'markdown-mode-hook 'toc-org-mode))
+(defun tangle-reload ()
+  (interactive)
+  (let ((org-file (concat emacs-dir "cfg.org"))
+        (init-file (concat emacs-dir "init.el")))
+    (org-babel-tangle-file org-file) (load init-file)))
+
+(use-package org-download
+  :config
+  (setq org-download-display-inline-images t
+        org-download-image-dir (expand "_img" user-notes-dir))
+  :gfhook
+  ('dired-mode-hook 'org-download-enable))
+
+;;; notes.el ends here
+(use-package bug-hunter
+  :ensure (:host github :repo "Malabarba/elisp-bug-hunter"))
 
 (use-package org-roam
   :disabled t
-  :general
-  (leader/notes
-    "n" '(org-roam-capture :wk "Capture")
-    "f" '(org-roam-node-find :wk "Find node"))
-  ( 'org-mode-map
-	  "a" #'org-roam-alias-add
-	  "r" #'org-roam-ref-add)
   :config
   (setq org-roam-db-gc-threshold most-positive-fixnum)
   (setq org-roam-directory (expand user-notes-dir))
@@ -372,25 +329,126 @@
           #'org-roam-unlinked-references-section))
 
   (org-roam-db-autosync-mode))
-
-(use-package org-download
+(use-package denote
+  :ensure t
+  :init
+  (require 'denote-org-extras)
+  (denote-rename-buffer-mode t)
+  :hook
+  (find-file-hook . denote-link-buttonize-buffer)
+  (dired-mode . denote-dired-mode)
+  :custom-face
+  (denote-faces-link ((t (:slant italic))))
+  :custom
+  (denote-known-keywords '("rust"
+                           "emacs"
+                           "CS"
+                           "philosophy"
+                           "politics"
+                           "economics"))
   :config
-  (setq org-download-display-inline-images t
-        org-download-image-dir (expand "_img" user-notes-dir))
-  :gfhook
-  ('dired-mode-hook 'org-download-enable))
+  (defun my-denote-tmr ()
+    (interactive)
+    (tmr "10" "Practice writing in my journal"))
+  (add-hook 'denote-journal-extras-hook 'my-denote-tmr)
 
-(setq org-capture-templates
-      '((?n "Notes" entry
-            (file "~/sync/notes/inbox.org") "* %^{Description} %^g\n Added: %U\n%?")
-        (?m "Meeting notes" entry
-            (file "~/sync/notes/meetings.org") "* TODO %^{Title} %t\n- %?")
-        (?t "TODO" entry
-            (file "~/sync/notes/inbox.org") "* TODO %^{Title}")
-        (?e "Event" entry
-            (file "~/sync/notes/calendar.org") "* %^{Is it a todo?||TODO |NEXT }%^{Title}\n%^t\n%?")
-        (?w "Work TODO" entry
-            (file "~/sync/notes/work.org") "* TODO %^{Title}")))
+  (csetq denote-directory user-notes-dir)
+  (map ju-notes-map
+       "n" #'denote-create-note
+       "j" #'denote-journal-extras-new-or-existing-entry
+       "d" #'denote-date
+       "i" #'denote-link-or-create
+       "l" #'denote-find-link
+       "b" #'denote-find-backlink
+       "D" #'denote-org-dblock-insert-links
+       "r" #'denote-rename-file-using-front-matter
+       "R" #'denote-rename-file
+       "k" #'denote-keywords-add
+       "K" #'denote-keywords-remove))
+;;; Calendar
+(map calendar-mode-map
+     "n" #'calendar-forward-week
+     "d" #'calendar-backward-week
+     ;; forward:  f & t (t dvorak vim-like eq. j in qwerty)
+     "t" #'calendar-forward-day
+     "T" #'calendar-forward-month
+     "f" #'calendar-forward-day
+     "F" #'calendar-forward-month
+     ;; backwards: b & h (h dvorak vim-like eq. k)
+     "h" #'calendar-backward-day
+     "H" #'calendar-backward-month
+     "b" #'calendar-backward-day
+     "B" #'calendar-backward-month)
+;;; notes.el ---  desc  -*- lexical-binding: t; -*-
+;;; Commentary:
+;; https://www.reddit.com/r/emacs/comments/d7x7x8/finally_fixing_indentation_of_quoted_lists/
+;; https://emacs.stackexchange.com/questions/10230/how-to-indent-keywords-aligned
+;;; Code:
+(require 'core-packages)
+(require 'core-lib)
+(require 'keymaps)
+
+(use-package dogears
+  :ensure t
+  :init
+  (dogears-mode 1))
+
+;; Denote extensions
+(use-package consult-notes
+  :ensure t
+  :after denote
+  :commands (consult-notes
+             consult-notes-search-in-all-notes)
+  :init
+  (csetq consult-notes-file-dir-sources (list `("All" 'a "~/notes")))
+  (consult-notes-denote-mode)
+  (map leader-map "C-n" #'consult-notes)
+  (map ju-notes-map
+       "f" #'consult-notes
+       "s" #'consult-notes-search-in-all-notes))
+
+(use-package org-sticky-header
+  :ensure t
+  :hook (org-mode . org-sticky-header-mode))
+
+(use-package org-gtd
+  :disabled t
+  :ensure t
+  :after org
+  :init
+  (setq ju-gtd-map (make-sparse-keymap))
+  (map ju-notes-map
+       "g" (cons "GTD" ju-gtd-map))
+
+  (map ju-gtd-map
+       "c" (cons "GTD: Capture" #'org-gtd-capture)
+       "p" (cons "GTD: Process" #'org-gtd-process-inbox)
+       "e" (cons "GTD: Engage" #'org-gtd-engage)
+       "o" (cons "GTD: Organize" #'org-gtd-organize))
+
+  (csetq org-gtd-update-ack "3.0.0"
+         org-gtd-directory user-notes-dir))
+
+;; Easy insertion of weblinks
+(use-package org-web-tools)
+(use-package ob-mermaid)
+
+(use-package persistent-scratch
+  :hook
+  (after-init . persistent-scratch-setup-default)
+  :init
+  (persistent-scratch-autosave-mode)
+  (csetq persistent-scratch-save-file (concat cache-dir "permanent-scratch.org")
+         persistent-scratch-backup-directory (concat cache-dir "perm-scratch/"))
+  :config
+  (map ju-menu-map "x" #'scratch-buffer))
+
+;; Modernise Org mode interface
+(use-package olivetti
+  :demand t)
+
+
+(use-package org-bookmark-heading
+  :ensure t)
 
 (provide 'notes)
-;;; notes.el ends here

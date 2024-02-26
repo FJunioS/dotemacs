@@ -1,6 +1,4 @@
-;;; core-packages.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
 (require 'core-lib)
 (require 'core-load-paths)
 
@@ -54,7 +52,6 @@
     (pushnew! package-archives
               '("nongnu" . "https://elpa.nongnu.org/nongnu/")
               '("melpa" . "https://melpa.org/packages/"))))
-
 (require 'core-window)
 (core-handle-popup (rx "*elpaca-log*"))
 ;; don't require `use-package' when loading compiled file; saves a millisecond
@@ -67,8 +64,8 @@
   ;; entire init file before compiling already
   (csetq use-package-always-defer t))
 
-(defvar +elpaca-hide-log-commands '( eval-buffer eval-region eval-defun +eval-region-or-sexp
-                                     eval-last-sexp org-ctrl-c-ctrl-c)
+(defvar +elpaca-hide-log-commands '(eval-buffer eval-region eval-defun +eval-region-or-sexp
+                                                eval-last-sexp org-ctrl-c-ctrl-c pp-eval-last-sexp pp-eval-expression)
   "List of commands for which a successfully processed log is auto hidden.")
 (defun +elpaca-hide-successful-log ()
   "Hide Elpaca log buffer if queues processed successfully."
@@ -82,99 +79,100 @@
                     (member this-command +elpaca-hide-log-commands))))
       (with-selected-window window (quit-window 'kill window)))))
 
+(defun +elpaca-reload-package (package &optional allp)
+  "Reload PACKAGE's features.
+If ALLP is non-nil (interactively, with prefix), load all of its
+features; otherwise only load ones that were already loaded.
+
+This is useful to reload a package after upgrading it.  Since a
+package may provide multiple features, to reload it properly
+would require either restarting Emacs or manually unloading and
+reloading each loaded feature.  This automates that process.
+
+Note that this unloads all of the package's symbols before
+reloading.  Any data stored in those symbols will be lost, so if
+the package would normally save that data, e.g. when a mode is
+deactivated or when Emacs exits, the user should do so before
+using this command."
+  (interactive
+   (list (let ((elpaca-overriding-prompt "Reload package: "))
+           (elpaca--read-queued))
+         current-prefix-arg))
+  ;; This finds features in the currently installed version of PACKAGE, so if
+  ;; it provided other features in an older version, those are not unloaded.
+  (when (yes-or-no-p (format "Unload all of %s's symbols and reload its features? " package))
+    (let* ((package-name (symbol-name package))
+           (package-dir (file-name-directory
+                         (locate-file package-name load-path (get-load-suffixes))))
+           (package-files (directory-files package-dir 'full (rx ".el" eos)))
+           (package-features
+            (cl-loop for file in package-files
+                     when (with-temp-buffer
+                            (insert-file-contents file)
+                            (when (re-search-forward (rx bol "(provide" (1+ space)) nil t)
+                              (goto-char (match-beginning 0))
+                              (cadadr (read (current-buffer)))))
+                     collect it)))
+      (unless allp
+        (setf package-features (seq-intersection package-features features)))
+      (dolist (feature package-features)
+        (ignore-errors
+          ;; Ignore error in case it's not loaded.
+          (unload-feature feature 'force)))
+      (dolist (feature package-features)
+        (require feature))
+      (when package-features
+        (message "Reloaded: %s" (mapconcat #'symbol-name package-features " "))))))
+(add-to-list 'elpaca-ignored-dependencies 'eldoc)
+
 (add-hook 'elpaca-post-queue-hook #'+elpaca-hide-successful-log)
 
 (elpaca-wait)
-(add-hook 'elpaca-after-init-hook (lambda () (setq-default eldoc-mode 1)))
-
-(use-package org :elpaca nil)
-
-(use-package blackout :demand t)
+(use-package org)
+;; Silence modes from displaying on mode-linep
 (use-package diminish :demand t)
-(use-package general
-  :demand t
-  :ensure t
-  :config)
-
 (use-package async
   :demand t
   :ensure t
   :config
   (async-bytecomp-package-mode 1))
-
+(use-package with-editor)
+(use-package transient)
 (use-package hydra
   :demand t
   :ensure t)
-
+(use-package popup)
+(use-package dash)
+(use-package s)
+(use-package f)
 (use-package auth-source
-  :no-require t
-  :ensure t
-  :demand t
-  :elpaca nil
-  :config (setq auth-sources '("~/.authinfo.gpg" "~/.authinfo" "~/.netrc")))
-
-(use-package exwm
-  :demand t
-  :if (string= (getenv "XDG_CURRENT_DESKTOP") "EXWM")
+  :ensure
   :config
-  (exwm-enable)
-  (server-start)
-  (require '+exwm))
-
-(elpaca-wait)
-
-(use-package desktop-environment
-  :ensure t
-  :after exwm
-  :config
-  (desktop-environment-mode)
-
-  :custom
-  (desktop-environment-brightness-small-increment "2%+")
-  (desktop-environment-brightness-small-decrement "2%-")
-
-  (desktop-environment-brightness-normal-increment "5%+")
-  (desktop-environment-brightness-normal-decrement "5%-")
-
-  :config
-  (defhydra hydra-volume (:timeout 4)
-    "Configure Volume"
-    ("j" desktop-environment-volume-normal-increment "up")
-    ("k" desktop-environment-volume-normal-decrement "down")
-    ("q" nil "quit" :exit t))
-
-  ;; This hydra function allows for control of brightness
-  (defhydra hydra-brightness (:timeout 4)
-    "Configure Brightness"
-    ("j" desktop-environment-brightness-increment "up")
-    ("k" desktop-environment-brightness-decrement "down")
-    ("q" nil "quit" :exit t))
-
-  (nvmap :prefix "C-c C-s"
-    "" '(:ignore t :wk "System")
-    "v" #'hydra-volume/body
-    "b" #'hydra-brightness/body))
-
-;; Launch apps with completion on point interface
-(use-package app-launcher
-  :after exwm
-  :elpaca (:host github :repo "SebastienWae/app-launcher"))
+  (setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
+  (auth-source-pass-enable))
 
 (use-package pinentry
   :ensure t
-  :config
-    (setq epg-gpg-program "gpg2")  ;; not necessary
-    (require 'epa-file)
-    (epa-file-enable)
-    (setq epa-pinentry-mode 'loopback)
-    (setq epg-pinentry-mode 'loopback)
+  :init
+  ;; let's get encryption established
+  (setenv "GPG_AGENT_INFO" nil)  ;; use emacs
+  (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 
-    (setenv "GPG_AGENT_INFO" nil)  ;; use emacs pinentry
-    (setq auth-source-debug t)
-    (pinentry-start)
+  (setq auth-source-debug t)
 
-    (require 'org-crypt)
-    (org-crypt-use-before-save-magic))
+  (require 'epa-file)
+  (epa-file-enable)
+  (setq epa-pinentry-mode 'loopback)
+  (setq epg-pinentry-mode 'loopback)
+  (pinentry-start t)
+
+  (require 'org-crypt)
+  (org-crypt-use-before-save-magic)
+
+  ;; Start GPG agent with SSH support
+  (shell-command "gpg-connect-agent /bye"))
+
+(elpaca-wait)
 
 (provide 'core-packages)
-;;; core-packages.el ends here
+;;; core-packages.el ends here.

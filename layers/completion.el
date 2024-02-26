@@ -1,64 +1,5 @@
-;;; completion.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
 (require 'core-packages)
-
-;; Configure Tempel
-(use-package tempel
-  :ensure t
-  :init
-  ;; Setup completion at point
-  (defun tempel-setup-capf ()
-    ;; Add the Tempel Capf to `completion-at-point-functions'.
-    ;; `tempel-expand' only triggers on exact matches. Alternatively use
-    ;; `tempel-complete' if you want to see all matches, but then you
-    ;; should also configure `tempel-trigger-prefix', such that Tempel
-    ;; does not trigger too often when you don't expect it. NOTE: We add
-    ;; `tempel-expand' *before* the main programming mode Capf, such
-    ;; that it will be tried first.
-    (setq-local completion-at-point-functions
-                (cons #'tempel-expand
-                      completion-at-point-functions)))
-  (add-hook! '(conf-mode-hook
-               prog-mode-hook
-               text-mode-hook)
-               'tempel-setup-capf)
-
-  (global-tempel-abbrev-mode)
-
-  (csetq tempel-template-sources 'tempel-path-templates
-         tempel-trigger-prefix ""
-         tempel-path (concat emacs-dir "templates"))
-
-  ;; Create keymap
-  (create-keymap snippet-map)
-  (map leader-map "t" snippet-map)
-  (map snippet-map
-       "t" #'tempel-insert
-       "c" #'tempel-complete)
-
-  (defun tempel-include (elt)
-    (when (eq (car-safe elt) 'i)
-      (if-let (template (alist-get (cadr elt) (tempel--templates)))
-          (cons 'l template)
-        (message "Template %s not found" (cadr elt))
-        nil)))
-
-  (add-to-list 'tempel-user-elements #'tempel-include))
-
-;; (use-package transducers)
-
-(use-package spacious-padding
-  :init
-  (when (require 'spacious-padding nil t)
-    (csetq spacious-padding-widths
-          '( :internal-border-width 15
-             :header-line-width 4
-             :mode-line-width 6
-             :tab-width 4
-             :right-divider-width 30
-             :scroll-bar-width 8))
-    (spacious-padding-mode 1)))
 
 (use-package cape
   :ensure t
@@ -67,21 +8,13 @@
             #'cape-file
             #'cape-abbrev
             #'cape-history))
-
 (use-package corfu
-  :elpaca (corfu :files (:defaults "extensions/*.el"))
-  :ghook
-  'prog-mode-hook
-  'shell-mode-hook
-  'eshell-mode-hook
-  'eglot-managed-mode-hook
+  :ensure (corfu :files (:defaults "extensions/*.el"))
+  :init
+  (dolist (mode '(prog-mode-hook org-mode-hook shell-mode-hook eshell-mode-hook eglot-managed))
+    (add-hook (+unquote mode) #'corfu-mode))
   :config
-  (corfu-popupinfo-mode 1)
-  (corfu-indexed-mode   1)
-  (corfu-history-mode   1)
-
   (defun corfu-enable-in-minibuffer ()
-    "Enable Corfu in the minibuffer if `completion-at-point' is bound."
     (when (where-is-internal #'completion-at-point (list (current-local-map)))
       ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
       (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
@@ -91,12 +24,12 @@
   (dolist (c '(minibuffer-setup-hook eshell-mode-hook))
     (add-hook c #'corfu-enable-in-minibuffer))
 
-  (csetq corfu-auto t
-        corfu-preview-current nil
-        corfu-quit-no-match nil
-        corfu-auto-delay 0.15
-        corfu-indexed-start 1
-        corfu-auto-prefix 3)
+  (csetq corfu-auto t ;; Popup appears automatically
+         corfu-preview-current t ;; Show candidate on pointer
+         corfu-quit-no-match nil
+         corfu-indexed-start 1
+         corfu-auto-delay 0.15
+         corfu-auto-prefix 3)
 
   (dolist (c (list (cons "SPC" " ")
                    (cons "." ".")
@@ -106,24 +39,6 @@
                    (cons "C-]" "\\]")
                    (cons "=" "=")
                    (cons ":" ":")
-                   (cons "C-1" "(")
-                   (cons "C-7" "[")
-                   (cons "C-5" "{")
-                   (cons "C-3" "}")
-                   (cons "C-2" ")")
-                   (cons "C-]" "]")
-                   (cons "1" "1")
-                   (cons "2" "2")
-                   (cons "3" "3")
-                   (cons "4" "4")
-                   (cons "5" "5")
-                   (cons "6" "6")
-                   (cons "7" "7")
-                   (cons "8" "8")
-                   (cons "9" "9")
-                   (cons "0" "0")
-                   (cons "C-(" "\\(")
-                   (cons "C-)" "\\)")
                    (cons "C-{" "\\[")
                    (cons "C-}" "\\]")
                    (cons "," ",")
@@ -133,19 +48,19 @@
                    (cons "}" "}")
                    (cons "]" "]")))
     (define-key corfu-map (kbd (car c)) `(lambda ()
-                                         (interactive)
-                                         #'(corfu-quit)
-                                         (insert ,(cdr c)))))
+                                           (interactive)
+                                           #'(corfu-quit)
+                                           (insert ,(cdr c)))))
 
   (pushnew! savehist-additional-variables 'corfu-history)
 
-  (defmacro generate-corfu-select-index! (index)
-    "return a named function to run `corfu-complete' for index."
-    `(defun! ,(intern (format "ju-corfu-enter-index-%s" index)) ()
-       ,(format "call `corfu-complete' for index %s." index)
-       (interactive)
-       (let ((corfu--index ,index))
-         (corfu-complete))))
+  ;; (defmacro generate-corfu-select-index! (index)
+  ;;   "return a named function to run `corfu-complete' for index."
+  ;;   `(defun! ,(intern (format "ju-corfu-enter-index-%s" index)) ()
+  ;;      ,(format "call `corfu-complete' for index %s." index)
+  ;;      (interactive)
+  ;;      (let ((corfu--index ,index))
+  ;;        (corfu-complete))))
 
   (map corfu-map
        "C-SPC" #'corfu-insert-separator
@@ -159,77 +74,227 @@
        "<tab>" #'corfu-complete
 
        "<return>" #'(lambda () (interactive)
-                 (corfu-complete)
-                 (call-interactively #'newline))
+                      (corfu-complete)
+                      (call-interactively #'newline))
 
        "ESC" (defun corfu-quit-minibuffer ()
-                    "`escape-quit-minibuffer' but quit corfu if active."
-                    (interactive)
-                    (when (and (boundp 'corfu--frame)
-                               (frame-live-p corfu--frame))
-                      (corfu-quit))
-                    (keyboard-quit))
-       "(" (generate-corfu-select-index! 0)
-       ")" (generate-corfu-select-index! 1)
-       "}" (generate-corfu-select-index! 2)
-       "+" (generate-corfu-select-index! 3)
-       "{" (generate-corfu-select-index! 4)
-       "]" (generate-corfu-select-index! 5)
-       "[" (generate-corfu-select-index! 6)
-       "!" (generate-corfu-select-index! 7)
-       "=" (generate-corfu-select-index! 8)
-       "*" (generate-corfu-select-index! 9)))
-
-(use-package prescient)
-
+               "`escape-quit-minibuffer' but quit corfu if active."
+               (interactive)
+               (when (and (boundp 'corfu--frame)
+                          (frame-live-p corfu--frame))
+                 (corfu-quit))
+               (keyboard-quit))))
 (use-package orderless
+  :ensure t
   :init
-  (setq completion-category-defaults nil
-        ;; keep basic as fallback "to ensure that completion commands which
-        ;; rely on dynamic completion tables work correctly"
-        completion-styles '(orderless basic)
-        ;; necessary for tramp hostname completion when using orderless
-        completion-category-overrides
-        '((file (styles basic partial-completion))))
-
+  (csetq completion-styles '(orderless partial-completion basic)
+         completion-category-defaults nil
+         completion-category-overrides '((file     (styles orderless partial-completion))
+                                         ;; enable initialism by default for symbols
+                                         (symbol   (styles orderless))
+                                         (command  (styles orderless))
+                                         (variable (styles orderless)))
+         orderless-component-separator #'orderless-escapable-split-on-space ;; allow escaping space with backslash!
+         orderless-style-dispatchers (list #'+orderless-consult-dispatch
+                                           #'orderless-affix-dispatch))
   :config
   (defvar ju/orderless--separator "[ &]")
-
-  (defun orderless-fast-dispatch (word index total)
-    (and (= index 0) (= total 1) (length< word 1)
-         `(orderless-regexp . ,(concat "^" (regexp-quote word)))))
-
-  (orderless-define-completion-style orderless-fast
-    (orderless-style-dispatchers '(orderless-fast-dispatch))
-    (orderless-matching-styles '(orderless-literal orderless-regexp)))
-
-  (setq vertico-posframe-parameters
-        '((left-fringe . 8)
-          (right-fringe . 8)))
 
   (setq orderless-matching-styles
         '(orderless-literal
           orderless-prefixes
           orderless-initialism
-          orderless-regexp)))
+          orderless-regexp))
 
+  :preface
+  (defun orderless-fast-dispatch (word index total)
+    (and (= index 0) (= total 1) (length< word 1)
+         `(orderless-regexp . ,(concat "^" (regexp-quote word)))))
+
+  (defun +orderless-consult-dispatch (word _index _total)
+    (cond
+     ;; Ensure that $ works with Consult commands, which add disambiguation suffixes
+     ((string-suffix-p "$" word)
+      `(orderless-regexp . ,(concat (substring word 0 -1) (+orderless--consult-suffix))))
+     ;; File extensions
+     ((and (or minibuffer-completing-file-name
+               (derived-mode-p 'eshell-mode))
+           (string-match-p "\\`\\.." word))
+      `(orderless-regexp . ,(concat "\\." (substring word 1) (+orderless--consult-suffix)))))))
+(use-package prescient)
+(use-package sudo-utils)
+(use-package spacious-padding
+  :init
+  (when (require 'spacious-padding nil t)
+    (csetq spacious-padding-widths
+           '( :internal-border-width 15
+              :header-line-width 4
+              :tab-width 4
+              :right-divider-width 30
+              :scroll-bar-width 8))
+    (spacious-padding-mode 1)))
 (use-package consult
-  :elpaca (consult :files (:defaults "consult-*"))
+  :ensure (consult :files (:defaults "consult-*"))
   :defer 0
-
   :init
   (advice-add #'register-preview :override #'consult-register-window)
   (setq register-preview-delay 0.5
         register-preview-function #'consult-register-format)
 
   :config
-  (map global-map "C-r" #'consult-bookmark)
   (map leader-map "SPC" #'switch-to-buffer)
+  (map ju-menu-map "C-r" #'projectile-recentf-files)
   (global-map
+   "M-s o"   #'consult-org-heading
    "C-s"     #'consult-line
-   "M-s"     #'consult-buffer
+   "M-h"     #'consult-buffer
    "C-x C-r" #'consult-recent-file)
 
+  ;; orderless configuration
+  (defun +orderless--consult-suffix ()
+    "Regexp which matches the end of string with Consult tofu support."
+    (if (and (boundp 'consult--tofu-char) (boundp 'consult--tofu-range))
+        (format "[%c-%c]*$"
+                consult--tofu-char
+                (+ consult--tofu-char consult--tofu-range -1))
+      "$"))
+
+  ;; Recognizes the following patterns:
+  ;; * .ext (file extension)
+  ;; * regexp$ (regexp matching at end)
+
+
+
+  ;; ----------------------------------------------------------
+  ;; Use consult-ripgrep instead of project-find-regexp in project.el
+  (keymap-substitute project-prefix-map #'project-find-regexp #'consult-ripgrep)
+
+  (cl-nsubstitute-if
+   '(consult-ripgrep "Find regexp")
+   (pcase-lambda (`(,cmd _)) (eq cmd #'project-find-regexp))
+   project-switch-commands)
+
+  ;; Org Capture
+  (defun consult-org-capture-target (scope)
+    "Choose a capture target interactively.
+This function returns a value suitable for use as the `target'
+entry of `org-capture-templates'.  SCOPE is as in `org-map-entries'."
+    (list 'function
+          (lambda ()
+            (let ((consult--read-config `((,this-command
+                                           :prompt "Capture target: "
+                                           :preview-key "M-."))))
+              (set-buffer (save-window-excursion
+                            (consult-org-heading nil scope)
+                            (current-buffer)))))))
+
+  (set 'org-capture-templates
+       `(("c" "Consult..." entry ,(consult-org-capture-target 'agenda)
+          "* TODO %?\n  %i" :prepend t)))
+
+  (defun consult-org-capture ()
+    (interactive)
+    (org-capture nil "c"))
+
+  ;; -----------------------
+  ;; unique path for recentf
+  (defun my-consult--source-recentf-items-uniq ()
+    (let ((ht (consult--buffer-file-hash))
+          file-name-handler-alist ;; No Tramp slowdown please.
+          items)
+      (dolist (file (my-recentf-list-uniq) (nreverse items))
+        ;; Emacs 29 abbreviates file paths by default, see
+        ;; `recentf-filename-handlers'.
+        (unless (eq (aref (cdr file) 0) ?/)
+          (setcdr file (expand-file-name (cdr file))))
+        (unless (gethash (cdr file) ht)
+          (push (propertize
+                 (car file)
+                 'multi-category `(file . ,(cdr file)))
+                items)))))
+
+  (plist-put consult--source-recent-file
+             :items #'my-consult--source-recentf-items-uniq)
+
+  (defun my-recentf-list-uniq ()
+    (let* ((proposed (mapcar (lambda (f)
+                               (cons (file-name-nondirectory f) f))
+                             recentf-list))
+           (recentf-uniq proposed)
+           conflicts resol file)
+      ;; collect conflicts
+      (while proposed
+        (setq file (pop proposed))
+        (if (assoc (car file) conflicts)
+            (push (cdr file) (cdr (assoc (car file) conflicts)))
+          (if (assoc (car file) proposed)
+              (push (list (car file) (cdr file)) conflicts))))
+      ;; resolve conflicts
+      (dolist (name conflicts)
+        (let* ((files (mapcar (lambda (f)
+                                ;; data structure:
+                                ;; (file remaining-path curr-propos)
+                                (list f
+                                      (file-name-directory f)
+                                      (file-name-nondirectory f)))
+                              (cdr name)))
+               (curr-step (mapcar (lambda (f)
+                                    (file-name-nondirectory
+                                     (directory-file-name (cadr f))))
+                                  files)))
+          ;; Quick check, if there are no duplicates, we are done.
+          (if (eq (length curr-step) (length (seq-uniq curr-step)))
+              (setq resol
+                    (append resol
+                            (mapcar (lambda (f)
+                                      (cons (car f)
+                                            (file-name-concat
+                                             (file-name-nondirectory
+                                              (directory-file-name (cadr f)))
+                                             (file-name-nondirectory (car f)))))
+                                    files)))
+            (while files
+              (let (files-remain)
+                (dolist (file files)
+                  (let ((curr-propos (caddr file))
+                        (curr-part (file-name-nondirectory
+                                    (directory-file-name (cadr file))))
+                        (rest-path (file-name-directory
+                                    (directory-file-name (cadr file))))
+                        (curr-step
+                         (mapcar (lambda (f)
+                                   (file-name-nondirectory
+                                    (directory-file-name (cadr f))))
+                                 files)))
+                    (cond ((length= (seq-uniq curr-step) 1)
+                           ;; If all elements of curr-step are equal, we skip
+                           ;; this path part.
+                           (push (list (car file)
+                                       rest-path
+                                       curr-propos)
+                                 files-remain))
+                          ((member curr-part (cdr (member curr-part curr-step)))
+                           ;; There is more than one curr-part in curr-step
+                           ;; for this candidate.
+                           (push (list (car file)
+                                       rest-path
+                                       (file-name-concat curr-part curr-propos))
+                                 files-remain))
+                          (t
+                           ;; There is no repetition of curr-part in curr-step
+                           ;; for this candidate.
+                           (push (cons (car file)
+                                       (file-name-concat curr-part curr-propos))
+                                 resol)))))
+                (setq files files-remain))))))
+      ;; apply resolved conflicts
+      (let (items)
+        (dolist (file recentf-uniq (nreverse items))
+          (let ((curr-resol (assoc (cdr file) resol)))
+            (if curr-resol
+                (push (cons (cdr curr-resol) (cdr file)) items)
+              (push file items)))))))
+  ;; -----------------------
   (with-eval-after-load 'exwm
     (wm-map "M-y" #'consult-yank-from-kill-ring))
 
@@ -292,50 +357,50 @@ https://www.freedesktop.org/wiki/Specifications/desktop-bookmark-spec/"
         (message "consult: List of XDG recent files not found")
         '())))
 
-(defun consult--recent-system-files ()
-  "Return a list of files recently used by the system."
-  (cl-case system-type
-    (gnu/linux
-     (consult--xdg-recent-file-list))
-    (t
-     (message "consult-recent-file: \"%s\" currently unsupported"
-              system-type)
-     '())))
+  (defun consult--recent-system-files ()
+    "Return a list of files recently used by the system."
+    (cl-case system-type
+      (gnu/linux
+       (consult--xdg-recent-file-list))
+      (t
+       (message "consult-recent-file: \"%s\" currently unsupported"
+                system-type)
+       '())))
 
-(defcustom consult-include-system-recent-files t
-  "Whether to include files used by other programs in `consult-recent-file'."
-  :type 'boolean
-  :group 'consult)
+  (defcustom consult-include-system-recent-files t
+    "Whether to include files used by other programs in `consult-recent-file'."
+    :type 'boolean
+    :group 'consult)
 
-(defun consult--recent-files-mixed-candidates ()
-  "Return a list of files recently used by Emacs and the system.
+  (defun consult--recent-files-mixed-candidates ()
+    "Return a list of files recently used by Emacs and the system.
 
 These files are sorted by modification time, from most recent to least."
-  (thread-last
+    (thread-last
       (consult--recent-system-files)
-    (seq-filter #'recentf-include-p)
-    (append (mapcar #'substring-no-properties recentf-list))
-    delete-dups
-    (consult--recent-files-sort)))
+      (seq-filter #'recentf-include-p)
+      (append (mapcar #'substring-no-properties recentf-list))
+      delete-dups
+      (consult--recent-files-sort)))
 
   (defun consult--recent-files-sort (file-list)
-  "Sort the FILE-LIST by modification time, from most recent to least recent."
-  (thread-last
+    "Sort the FILE-LIST by modification time, from most recent to least recent."
+    (thread-last
       file-list
-    ;; Use modification time, since getting file access time seems to count as
-    ;; accessing the file, ruining future uses.
-    (mapcar (lambda (f)
-              (cons f (file-attribute-modification-time (file-attributes f)))))
-    (seq-sort (pcase-lambda (`(,f1 . ,t1) `(,f2 . ,t2))
-                ;; Want existing, most recent, local files first.
-                (cond ((or (not (file-exists-p f1))
-                           (file-remote-p f1))
-                       nil)
-                      ((or (not (file-exists-p f2))
-                           (file-remote-p f2))
-                       t)
-                      (t (time-less-p t2 t1)))))
-    (mapcar #'car)))
+      ;; Use modification time, since getting file access time seems to count as
+      ;; accessing the file, ruining future uses.
+      (mapcar (lambda (f)
+                (cons f (file-attribute-modification-time (file-attributes f)))))
+      (seq-sort (pcase-lambda (`(,f1 . ,t1) `(,f2 . ,t2))
+                  ;; Want existing, most recent, local files first.
+                  (cond ((or (not (file-exists-p f1))
+                             (file-remote-p f1))
+                         nil)
+                        ((or (not (file-exists-p f2))
+                             (file-remote-p f2))
+                         t)
+                        (t (time-less-p t2 t1)))))
+      (mapcar #'car)))
 
   ;;;###autoload
   (defun consult-recent-file ()
@@ -388,8 +453,7 @@ DEFS is a plist associating completion categories to commands."
 
 (use-package consult-gh ; Consult Github
   :after consult
-  :ensure t
-  :elpaca (:host github :repo "armindarvish/consult-gh"))
+  :ensure (:host github :repo "armindarvish/consult-gh"))
 
 (use-package consult-dir
   :ensure t
@@ -398,39 +462,34 @@ DEFS is a plist associating completion categories to commands."
          ("C-x C-d" . consult-dir)
          ("C-x C-j" . consult-dir-jump-file)))
 
-(use-package vertico-prescient
-  :after vertico
-  :demand t
-  :config
-  (setq vertico-prescient-enable-filtering nil)
-  (vertico-prescient-mode))
-
-(use-package vertico-posframe
-  :after vertico
-  :config
-  (vertico-posframe-mode)
-  (csetq posframe-mouse-banish-function #'posframe-mouse-banish-simple))
-
 (use-package vertico
   :ensure t
   :hook ((elpaca-after-init-hook . vertico-mode)
          (minibuffer-setup-hook  . vertico-repeat-save))
   :init
-    (vertico-mode 1)
-    (vertico-mouse-mode 1)
-    (vertico-multiform-mode 1)
-    (vertico-indexed-mode 1)
-
-    (pushnew! savehist-additional-variables 'vertico-repeat-history)
+  (vertico-mode 1)
+  (vertico-mouse-mode 1)
+  (vertico-multiform-mode 1)
+  (vertico-indexed-mode 1)
+  ;; (vertico-buffer-mode) ;; Not so seamslesly
+  (pushnew! savehist-additional-variables 'vertico-repeat-history)
   :config
   (csetq vertico-count 10
          vertico-scroll-margin 8
-         vertico-resize nil
-         vertico-cycle nil
-         vertico-indexed-start 1)
+         vertico-resize t
+         vertico-cycle t
+         vertico-indexed-start 1) ;; TODO Set this to 0 and change macro impl below
+
+  ;; Vertico Buffer settings
+  (when vertico-buffer-mode
+    (csetq vertico-buffer-display-action
+           '(display-buffer-at-bottom (window-height . 11)))
+    (add-hook 'minibuffer-setup-hook (lambda () (setq mode-line-format nil))))
 
   (csetq vertico-buffer-display-action '(display-buffer-reuse-window)) ; Default
+
   (csetq vertico-sort-function #'sort-directories-first)
+
   (csetq vertico-multiform-commands
          '((describe-symbol (vertico-sort-function . vertico-sort-alpha))))
   (csetq vertico-multiform-categories
@@ -440,18 +499,15 @@ DEFS is a plist associating completion categories to commands."
   (defadvice vertico-insert
       (after vertico-insert-add-history activate)
     "Make vertico-insert add to the minibuffer history."
-    (unless (eq minibuffer-history-variable t)
+    (unless minibuffer-history-variable
       (add-to-history minibuffer-history-variable (minibuffer-contents))))
 
   ;; Make sure vertico state is saved
   ;; so commands `vertico-repeat-last' and `vertico-repeat-select' can be useful.
   (add-hook 'minibuffer-setup-hook #'vertico-repeat-save)
+
   ;; Clear input when inserting a new path with `/' or `~/'
   (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy)
-
-  ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
-  (csetq-default read-extended-command-predicaten
-                 #'command-completion-default-include-p)
 
   (dolist (c (list (cons "SPC" " ")
                    (cons "." ".")
@@ -468,47 +524,39 @@ DEFS is a plist associating completion categories to commands."
                    (cons "C-2" ")")
                    (cons "C-]" "]")))
     (define-key vertico-map (kbd (car c)) `(lambda ()
-                                           (interactive)
-                                           (insert ,(cdr c)))))
+                                             (interactive)
+                                             (insert ,(cdr c)))))
 
-  (defmacro generate-vertico-select-index! (index)
-    "Return a named function to run `vertico-enter' for INDEX."
-    `(defun! ,(intern (format "vertico-enter-index-%s" index)) ()
-       ,(format "Call `vertico-enter' for index %s." index)
-       (interactive)
-       (let ((vertico--index ,index))
-         (vertico-directory-enter))))
+  ;; (defmacro generate-vertico-select-index! (index)
+  ;;   "Return a named function to run `vertico-enter' for INDEX."
+  ;;   `(defun! ,(intern (format "vertico-enter-index-%s" index)) ()
+  ;;      ,(format "Call `vertico-enter' for index %s." index)
+  ;;      (interactive)
+  ;;      (let ((vertico--index ,index))
+  ;;        (vertico-directory-enter))))
 
-  (map global-map
-       "M-," #'vertico-repeat)
   (map vertico-map
+       "ESC" nil ;; necessary to avoid prefix errors (TESTING)
        "C-l" #'vertico-repeat-last
-       "C-s" #'vertico-repeat-select
-       "C-l" #'vertico-directory-enter
-       "C-j" #'vertico-next
+       "C-," #'vertico-repeat-select
+       "C-p" #'vertico-previous
+       "C-n" #'vertico-next
        "C-h" (cmds! (eq 'file (vertico--metadata-get 'category)) #'vertico-directory-up)
-       "C-k" #'vertico-previous
-       "C-i" #'vertico-insert
        "C-o" #'vertico-first
+       "C-w" #'vertico-save
+
+       ;; Scrolling
+       "C-v" (lambda () (interactive) (vertico-scroll-down -1))
+       "M-v" (lambda () (interactive) (vertico-scroll-down 1))
+
        "<tab>" #'vertico-insert
-       "<next>" #'vertico-scroll-up
-       "<prior>" #'vertico-scroll-down
-       "<escape>" #'escape
+
        "<return>" #'vertico-directory-enter
+       "M-<return>" #'vertico-exit-input ;; insert what is on input and close
        "<backspace>" #'vertico-directory-delete-char
        "C-<backspace>" #'vertico-directory-delete-word
-       "<prior>" #'vertico-scroll-down
-       "<next>" #'vertico-scroll-up
-       "(" (generate-vertico-select-index! 0)
-       ")" (generate-vertico-select-index! 1)
-       "}" (generate-vertico-select-index! 2)
-       "+" (generate-vertico-select-index! 3)
-       "{" (generate-vertico-select-index! 4)
-       "]" (generate-vertico-select-index! 5)
-       "[" (generate-vertico-select-index! 6)
-       "!" (generate-vertico-select-index! 7)
-       "=" (generate-vertico-select-index! 8)
-       "*" (generate-vertico-select-index! 9))
+       "<escape>" #'escape ;; Restore ESC behavior
+       )
 
   ;; Sort directories before files
   (defun sort-directories-first (files)
@@ -525,18 +573,68 @@ DEFS is a plist associating completion categories to commands."
                  (if (= vertico--index index)
                      (propertize "» " 'face 'vertico-current)
                    "  ")
-                 cand))))
+                 cand)))
+
+  (defvar +vertico-transform-functions nil)
+
+  (cl-defmethod vertico--format-candidate :around
+    (cand prefix suffix index start &context ((not +vertico-transform-functions) null))
+    (dolist (fun (ensure-list +vertico-transform-functions))
+      (setq cand (funcall fun cand)))
+    (cl-call-next-method cand prefix suffix index start))
+
+  (defun +vertico-highlight-directory (file)
+    "If FILE ends with a slash, highlight it as a directory."
+    (if (string-suffix-p "/" file)
+        (propertize file 'face 'marginalia-file-priv-dir) ; or face 'dired-directory
+      file))
+
+  ;; function to highlight enabled modes similar to counsel-M-x
+  (defun +vertico-highlight-enabled-mode (cmd)
+    "If MODE is enabled, highlight it as font-lock-constant-face."
+    (let ((sym (intern cmd)))
+      (if (or (eq sym major-mode)
+              (and
+               (memq sym minor-mode-list)
+               (boundp sym)))
+          (propertize cmd 'face 'font-lock-constant-face)
+        cmd)))
+
+  ;; add-to-list works if 'file isn't already in the alist
+  ;; setq can be used but will overwrite all existing values
+  (add-to-list 'vertico-multiform-categories
+               '(file
+                 ;; this is also defined in the wiki, uncomment if used
+                 ;; (vertico-sort-function . sort-directories-first)
+                 (+vertico-transform-functions . +vertico-highlight-directory))))
+
+(use-package vertico-prescient
+  :after vertico
+  :demand t
+  :config
+  (setq vertico-prescient-enable-filtering nil)
+  (vertico-prescient-mode))
+
+(use-package vertico-posframe
+  :after vertico
+  :config
+  (vertico-posframe-mode)
+  (csetq posframe-mouse-banish-function #'posframe-mouse-banish-simple))
 
 (use-package embark
   :ensure t
-  :general
-  ("C-;" #'embark-dwim
-   "C-." #'embark-act)
-  (:keymaps ju//minibuffer-maps
-            "C-]" #'embark-act
-            "C-;" #'embark-dwim
-            "C-h B" #'embark-bindings)
+
   :config
+  (map global-map
+       "C-;" #'embark-dwim
+       "C-." #'embark-act)
+  (dolist (m  ju//minibuffer-maps)
+    (map (symbol-value m)
+         "C-SPC" #'embark-select
+         "C-." #'embark-act
+         "C-;" #'embark-dwim
+         "C-h B" #'embark-bindings))
+  (setq embark-quit-after-action '((kill-buffer . nil) (t . nil)))
   (defun embark-which-key-indicator ()
     "An embark indicator that displays keymaps using which-key.
 The which-key help message will show the type and value of the
@@ -558,7 +656,7 @@ targets."
                (_ (key-binding prefix 'accept-default)))
            keymap)
          nil nil t (lambda (binding)
-                 (not (string-suffix-p "-argument" (cdr binding))))))))
+                     (not (string-suffix-p "-argument" (cdr binding))))))))
 
   (setq embark-indicators
         '(embark-which-key-indicator
@@ -597,37 +695,37 @@ targets."
   (define-key embark-bookmark-map (kbd "o") (my/embark-ace-action bookmark-jump))
 
   (defun sudo-find-file (file)
-  "Open FILE as root."
-  (interactive "FOpen file as root: ")
-  (when (file-writable-p file)
-    (user-error "File is user writeable, aborting sudo"))
-  (find-file (if (file-remote-p file)
-                 (concat "/" (file-remote-p file 'method) ":"
-                         (file-remote-p file 'user) "@" (file-remote-p file 'host)
-                         "|sudo:root@"
-                         (file-remote-p file 'host) ":" (file-remote-p file 'localname))
-               (concat "/sudo:root@localhost:" file))))
+    "Open FILE as root."
+    (interactive "FOpen file as root: ")
+    (when (file-writable-p file)
+      (user-error "File is user writeable, aborting sudo"))
+    (find-file (if (file-remote-p file)
+                   (concat "/" (file-remote-p file 'method) ":"
+                           (file-remote-p file 'user) "@" (file-remote-p file 'host)
+                           "|sudo:root@"
+                           (file-remote-p file 'host) ":" (file-remote-p file 'localname))
+                 (concat "/sudo:root@localhost:" file))))
   (define-key embark-file-map (kbd "S") 'sudo-find-file)
 
-  (define-key embark-region-map (kbd "U") '0x0-dwim)
-  )
+  (define-key embark-region-map (kbd "U") '0x0-dwim))
 
 (use-package embark-consult
   :ensure t ; only need to install it, embark loads it after consult if found
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
-
 (use-package marginalia
   :custom
   (marginalia-max-relative-age 0)
   (marginalia-align 'left)
-  (marginalia-align-offset 20)
+  (marginalia-align-offset 10)
   :init
   (marginalia-mode)
   (csetq marginalia-annotators
          '(marginalia-annotators-heavy marginalia-annotators-light nil)))
 
 (provide 'completion)
-;; completion.el ends here
-
 ;;; completion.el ends here
+
+
+(provide 'completion)
+;;; completion.el ends here.

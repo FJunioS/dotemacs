@@ -1,29 +1,42 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'core-packages)
 
 (use-package pdf-tools
-  :elpaca (:build t)
-  :demand t
+  :ensure t
+  ;; I use nix bin instead of compiling
+  :init
+  (csetq-default doc-view-resolution nil)
+  (pdf-loader-install t)
   :mode (("\\.[pP][dD][fF]\\'" . pdf-view-mode))
-  :general
-  ('pdf-view-mode-map
-           "d" #'pdf-view-previous-page-command
-           "h" (lambda () (interactive) (pdf-view-next-line-or-next-page 5))
-           "t" (lambda () (interactive) (pdf-view-previous-line-or-previous-page 5))
-           "n" #'pdf-view-next-page-command
-           ;; alternatively
-           "g" #'image-bob
-           "G" #'noct:pdf-view-goto-page
-           "m" #'pdf-view-position-to-register
-           "'" #'pdf-view-jump-to-register
-           "/" #'pdf-occur
-           "o" #'pdf-outline
-           "f" #'pdf-links-action-perform
-           "b" #'pdf-view-midnight-minor-mode
-           "y" 'core:pdf-view-page-as-text
-           "C-o" #'pdf-history-backward
-           "C-i" #'pdf-history-forward)
   :config
+  (map pdf-view-mode-map
+       "d" #'pdf-view-previous-page-command
+       "h" (lambda () (interactive) (pdf-view-next-line-or-next-page 5))
+       "t" (lambda () (interactive) (pdf-view-previous-line-or-previous-page 5))
+       "n" #'pdf-view-next-page-command
+       "C-#" #'pdf-view-enlarge
+       "C-!" #'pdf-view-shrink
+       ;; alternatively
+       "g" #'image-bob
+       "G" #'noct:pdf-view-goto-page
+       "m" #'pdf-view-position-to-register
+       "'" #'pdf-view-jump-to-register
+       "/" #'pdf-occur
+       "o" #'pdf-outline
+       "f" #'pdf-links-action-perform
+       "b" #'pdf-view-midnight-minor-mode
+       "y" 'core:pdf-view-page-as-text
+       "C-o" #'pdf-history-backward
+       "C-i" #'pdf-history-forward)
+
+  ;; Ediff
+  (require 'ediff)
+  (csetq ediff-split-window-function #'split-window-vertically
+         ediff-window-setup-function #'ediff-setup-windows-plain)
+
   (add-hook 'pdf-tools-enabled-hook #'pdf-view-midnight-minor-mode)
+
   :preface
   (defun core:pdf-view-page-as-text ()
     "Inserts current pdf page into a buffer for keyboard selection."
@@ -84,3 +97,6 @@
   )
 
 (provide 'readers)
+
+(provide 'readers)
+;;; readers.el ends here.

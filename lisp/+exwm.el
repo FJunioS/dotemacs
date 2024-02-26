@@ -10,8 +10,9 @@
 ;;; Utilities
 (defvar exwm-ws-hook nil
   "Hook run right after user switch workspaces, useful for defining local keymaps.")
-(defconst primary-monitor "HDMI-A-0")
-(defconst secondary-monitor "DisplayPort-0")
+
+;; -----------------------------------
+;; Monitor settings
 
 (defun exwm-global-map::set (hk val)
   (eval `(puthash ,(kbd hk) ,val ,'exwm-global--table-map)))
@@ -36,34 +37,37 @@
 
 ;; 
 ;;; Monitor and workspaces
+(defconst primary-monitor "HDMI-1")
+(defconst secondary-monitor "DP-1")
+
+(setq exwm-randr-workspace-monitor-plist (list 1 primary-monitor 2 secondary-monitor))
+(add-hook 'exwm-randr-screen-change-hook
+          (lambda ()
+            (start-process-shell-command
+             "xrandr" nil (concat "xrandr --output " primary-monitor " --primary " "--above " secondary-monitor))))
+(exwm-randr-enable)
+
+;; hide modeline from floating windows
 (add-hook 'exwm-floating-setup-hook 'exwm-layout-hide-mode-line)
 (add-hook 'exwm-floating-exit-hook 'exwm-layout-show-mode-line)
-
 
 (setq exwm-workspace-number 10)
 
 (csetq exwm-workspace-show-all-buffers t)
 
 (csetq exwm-randr-workspace-monitor-plist
-       `(0 ,secondary-monitor
-           1 ,primary-monitor
-           2 ,primary-monitor
-           3 ,primary-monitor
-           4 ,primary-monitor
-           5 ,secondary-monitor
-           6 ,secondary-monitor
-           7 ,secondary-monitor
-           8 ,secondary-monitor))
+   (list 0 secondary-monitor
+         1 primary-monitor
+         2 primary-monitor
+         3 primary-monitor
+         4 primary-monitor
+         5 secondary-monitor
+         6 secondary-monitor
+         7 secondary-monitor
+         8 secondary-monitor))
 
-(add-hook 'exwm-randr-screen-change-hook
-          (lambda ()
-            (start-process-shell-command
-             "xrandr" nil "xrandr --output HDMI-A-0 --auto --primary --output DisplayPort-0 --auto --below HDMI-A-0")))
-
-(exwm-randr-enable)
 (exwm-systemtray-enable)
 (setq exwm-systemtray-height 16)
-
 
 ;;
 ;;; MAP
@@ -98,7 +102,6 @@ Examples:
         "s-d" #'app-launcher-run-app
         "s-<return>" #'eat-other-window
         "s-s" #'exwm-workspace-switch)
-
 
 (defmacro generate-exwm-select-ws! (index)
   "Return a named function to run `exwm-workspace-switch-create' for INDEX."
@@ -148,10 +151,12 @@ Examples:
           (let ((default-directory "~"))
             (start-process "exwm-subproc" nil
                            "bash" "-c" "nohup bash -c \"$1\" >/dev/null 2>&1" "--" command))))
+
 (defun core/keyboard-settings ()
   (interactive)
   (start-process "exwm-subproc-keyboard" nil
                  "keyboard.sh"))
+
 (core/keyboard-settings)
 
 (general-with 'evil
@@ -267,8 +272,8 @@ Examples:
 (start-process "exwm-redshift" nil
                "redshift" "-l -23:-46" "-t 6500:2500" "-b 0.8:0.7")
 
-(start-process "exwm-ollama" nil
-               "ollama" "serve")
+;; (start-process "exwm-ollama" nil
+;;                "ollama" "serve")
 
 (provide '+exwm)
 ;;; +exwm.el ends here

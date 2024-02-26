@@ -1,4 +1,5 @@
-(require 'core-packages)
+;; -*- lexical-binding: t; -*-
+
 (require 'popup-handler)
 
 ;; Settings --------------------------------
@@ -22,7 +23,7 @@
 ;; Key to kill-whole-line
 (global-set-key (kbd "C-S-k") 'kill-whole-line)
 (global-set-key (kbd "C-k") 'kill-visual-line-join)
-(global-set-key "\C-d" 'ju-delete-char)
+
 
 (global-set-key "\C-z" 'zap-up-to-char)
 (global-set-key "\C-a" 'back-to-indentation-or-beginning)
@@ -33,13 +34,11 @@
 ;; Easily comment and uncomment region
 (global-set-key (kbd "C-c ;") 'comment-region)
 
-(define-key global-map (kbd "C-o") 'open-previous-line)
-(define-key global-map (kbd "C-j") 'open-next-line)
+;;(define-key global-map (kbd "M-o") 'open-previous-line)
+;;(define-key global-map (kbd "C-j") 'open-next-line)
 
 (define-key global-map (kbd "C-'") 'open-previous-line)
 (define-key global-map (kbd "M-'") 'use-register-dwim)
-
-(global-set-key [remap backward-kill-word] #'ju/backward-kill-word)
 
 ;; --------------------------------------
 ;;              Functions
@@ -75,22 +74,19 @@
               (line-end-position)))
     (cons beg end)))
 
-(defun ju-delete-char (&optional args)
-  (interactive "p")
-    (cond
-     ((region-active-p)
-      (let* ((pos (get-region-pos))
-             (beg (car pos))
-             (end (cdr pos)))
-        (delete-region beg end)))
-     ((= (point) (eol))
-      (join-line-below)
-      (indent-according-to-mode))
-     (t  (call-interactively 'delete-char))))
+(defun my-kill-ring-save ()
+  "An `kill-ring-save' wrapper.
+If no active region, yank from point to eol, instead of mark."
+  (interactive)
+  (if (equal mark-active nil)
+      (kill-ring-save (point) (line-end-position))
+    (kill-ring-save (point) (mark))))
+
+(global-set-key "\M-w" 'my-kill-ring-save)
+(global-set-key "\C-y" 'yank)
 
 (defvar newline-and-indent t
   "Modify the behavior of the open-*-line functions to cause them to autoindent.")
-
 ;;; behave like vi's O command
 (defun open-previous-line (&optional arg)
   "Open a new line before the current one.
@@ -118,22 +114,15 @@
     (unless arg
       (indent-according-to-mode))))
 
-(defun ju/backward-kill-word ()
-  "Better backward-kill-word."
-  (interactive)
-  (backward-kill-word 1)
-  (when (looking-back (rx (char blank)) 1)
-    (backward-delete-char 1)))
-
 ;;;###autoload
 (defun duplicate-line (&optional arg)
   "Duplicate it. With prefix ARG, duplicate ARG lines following the current one."
   (interactive "p")
   (cl-destructuring-bind (beg . end) (if (region-active-p)
-                                      (cons (region-beginning)
-                                            (region-end))
-                                    (cons (line-beginning-position)
-                                          (line-end-position)))
+                                         (cons (region-beginning)
+                                               (region-end))
+                                       (cons (line-beginning-position)
+                                             (line-end-position)))
     (embark-insert arg)))
 
 (defun backward-kill-word-or-region (&optional arg)
@@ -187,20 +176,21 @@ For a location, jump to it."
 ;; ------------------------------------------
 
 (defun back-to-indentation-or-beginning () (interactive)
-   (if (= (point) (progn (beginning-of-line-text) (point)))
-       (beginning-of-line)))
+       (if (= (point) (progn (beginning-of-line-text) (point)))
+           (beginning-of-line)))
 
 ;; Packages --------------------------------
 
 (use-package visual-fill-column
-  :ghook 'text-mode-hook 'prog-mode-hook
+  :hook ((text-mode-hook . visual-fill-column-mode)
+          (prog-mode-hook . visual-fill-column-mode))
   :init
   (setq-default visual-fill-column-width 150)
   (setq-default visual-fill-column-center-text t))
 
 (use-package selection-highlight-mode
-  :elpaca (:host github
-           :repo "balloneij/selection-highlight-mode")
+  :ensure (:host github
+                 :repo "balloneij/selection-highlight-mode")
   :config (selection-highlight-mode))
 
 (use-package indent-guide
@@ -209,14 +199,14 @@ For a location, jump to it."
   (set-face-background 'indent-guide-face "unspecified"))
 
 (use-package whitespace
-  :elpaca nil
+  :ensure nil
   :demand t
   :config
   (map ju-toggle-map "w" #'whitespace-mode)
   (csetq whitespace-style
          '(face tabs spaces trailing lines space-before-tab
-           newline indentation empty space-after-tab space-mark
-           tab-mark newline-mark missing-newline-at-eof)
+                newline indentation empty space-after-tab space-mark
+                tab-mark newline-mark missing-newline-at-eof)
          ;; use `fill-column' value
          whitespace-line-column 120
          whitespace-display-mappings
@@ -235,7 +225,7 @@ For a location, jump to it."
 
 (defvar default-prettify-alist ())
 (setq default-prettify-alist
-       '(("lambda" . "λ")))
+      '(("lambda" . "λ")))
 
 (defun default-prettify-mode()
   "Enable a prettify with custom symbols"
@@ -301,3 +291,4 @@ For a location, jump to it."
   (global-key "C-." #'jinx-correct))
 
 (provide 'text-editing)
+;;; text-editing.el ends here.

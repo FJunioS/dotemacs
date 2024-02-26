@@ -27,10 +27,6 @@
    ;; custom keybinding for motion state
    '("<escape>" . escape))
 
-  ;; Insert
-  (map meow-insert-state-keymap
-       "C-SPC" #'completion-at-point)
-
   (defun ju-meow-change--handle-region (&optional arg)
     "Kill region or copy if ARG."
     (interactive "r")
@@ -74,7 +70,6 @@
 
   ;; Normal
   (meow-normal-define-key
-   '("C-d" . ju-delete-char)
    '("C-u" . universal-argument)
 
    '("u" . undo)
@@ -94,9 +89,10 @@
    '("h" . ju-menu-map)
    '("b" . meow-left)
    '("B" . meow-left-expand)
-   '("f" . avy-goto-char-2)
-   '("i" . ju-insert)
-   '("I" . ju-insert)
+   '("f" . meow-right)
+   '("F" . meow-right-expand)
+   '("i" . meow-insert)
+   '("I" . ju-append)
    '("k" . kill-visual-line-join)
    '("n" . meow-next)
    '("N" . meow-next-expand)
@@ -107,15 +103,14 @@
    '("t" . meow-right)
    '("T" . meow-right-expand)
    '("m" . meow-mark-word)
+   '("x" . "C-x")
    '("M" . meow-mark-symbol)
    '("w" . meow-back-word)
    '("W" . meow-back-symbol)
    '("v" . meow-next-word)
    '("V" . meow-next-symbol)
    '("l" . meow-line)
-   '("q" . ignore)
-   )
-  )
+   '("q" . ignore)))
 
 (provide '+meow)
 ;;; +meow.el ends here

@@ -1,7 +1,4 @@
-;;; core-window.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;; This code is a adaption from Noct (general.el creator)
-;;; Code:
+;; -*- lexical-binding: t; -*-
 
 (defmacro core-match-major-mode (mode)
   "Create a function that return whether the current `major-mode' is MODE."
@@ -148,4 +145,4 @@ Create another window if one doesn't exist"
   (window-parameter (selected-window) 'window-side))
 
 (provide 'core-window)
-;;; core-window.el ends here
+;;; core-window.el ends here.

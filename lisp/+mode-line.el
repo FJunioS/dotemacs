@@ -1,4 +1,4 @@
-;;; /lisp/+mode-line.el --  -*- lexical-binding: t -*-
+;; -*- lexical-binding: t; -*-
 
 (defun ju-major-mode-indicator ()
   "Return appropriate propertized mode line indicator for the major mode."
@@ -10,4 +10,4 @@
     (propertize indicator 'face 'shadow)))
 
 (provide '+mode-line)
-;;; +mode-line.el ends here
+;;; +mode-line.el ends here.

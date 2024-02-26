@@ -1,6 +1,5 @@
-;;; core-indent.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
+
 (advice-add #'calculate-lisp-indent :override #'void~calculate-lisp-indent)
 
 (defun void~calculate-lisp-indent (&optional parse-start)
@@ -179,4 +178,4 @@
                normal-indent))))))
 
 (provide 'core-indent)
-;;; core-indent.el ends here
+;;; core-indent.el ends here.

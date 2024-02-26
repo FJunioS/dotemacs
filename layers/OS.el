@@ -1,6 +1,4 @@
-;;; OS.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
 
 ;; Linux
 (defun ju/system-sleep ()
@@ -40,4 +38,4 @@
                  "nixos-rebuild" "switch"))
 
 (provide 'OS)
-;;; OS.el ends here
+;;; os.el ends here.

@@ -1,50 +1,49 @@
-;;; +ibuffer.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
 
 (require 'ibuffer)
+
 (csetq ibuffer-saved-filter-groups
-      '(("default"
-         ;; ("Modified" (predicate buffer-modified-p (current-buffer)))
-         ("Dired" (mode . dired-mode))
-         ("Notes" (or (filename . "^~/sync/")
-                      (filename . "^~/docs/")))
-         ("Config" (or (filename . "^.+/\\.config/emacs/.+$")
-                       (filename . "^.+/\\~/sync/config/.+$")))
-         ("Magit" (name . "magit\\*"))
-         ("Rust" (predicate . (and (eq major-mode 'rust-mode)
-                                   (not (string-match-p "spec\\.rs\\'"
-                                                        buffer-file-name)))))
-         ("Tests" (name . "spec\\.rs\\'"))
+       '(("default"
+          ;; ("Modified" (predicate buffer-modified-p (current-buffer)))
+          ("Dired" (mode . dired-mode))
+          ("Notes" (or (filename . "^~/sync/")
+                       (filename . "^~/docs/")))
+          ("Config" (or (filename . "^.+/\\.config/emacs/.+$")
+                        (filename . "^.+/\\~/sync/config/.+$")))
+          ("Magit" (name . "magit\\*"))
+          ("Rust" (predicate . (and (eq major-mode 'rust-mode)
+                                    (not (string-match-p "spec\\.rs\\'"
+                                                         buffer-file-name)))))
+          ("Tests" (name . "spec\\.rs\\'"))
 
-         ("EXWM" (mode . exwm-mode))
+          ("EXWM" (mode . exwm-mode))
 
-         ("Help" (or (mode . helpful-mode)
-                     (mode . help-mode)))
+          ("Help" (or (mode . helpful-mode)
+                      (mode . help-mode)))
 
-         ("Gnus" (or
-                  (mode . message-mode)
-                  (mode . bbdb-mode)
-                  (mode . mail-mode)
-                  (mode . gnus-group-mode)
-                  (mode . gnus-summary-mode)
-                  (mode . gnus-article-mode)
-                  (name . "^\\.bbdb$")
-                  (name . "^\\.newsrc-dribble")))
-         ("*internal*" (name . "\\*"))))
-      ;; Modify the default ibuffer-formats
-      ibuffer-formats
-      '((mark modified read-only locked " "
-              (name 20 20 :left :elide)
-              " "
-              (filename-and-process 40 -1)
-              " "
-              (+jun/size-h 12 -1 :right :elide)
-              "| "
-              (mode 20 -1))
-        (mark " "
-              (name 20 6)
-                 " " filename)))
+          ("Gnus" (or
+                   (mode . message-mode)
+                   (mode . bbdb-mode)
+                   (mode . mail-mode)
+                   (mode . gnus-group-mode)
+                   (mode . gnus-summary-mode)
+                   (mode . gnus-article-mode)
+                   (name . "^\\.bbdb$")
+                   (name . "^\\.newsrc-dribble")))
+          ("*internal*" (name . "\\*"))))
+       ;; Modify the default ibuffer-formats
+       ibuffer-formats
+       '((mark modified read-only locked " "
+               (name 20 20 :left :elide)
+               " "
+               (filename-and-process 40 -1)
+               " "
+               (+jun/size-h 12 -1 :right :elide)
+               "| "
+               (mode 20 -1))
+         (mark " "
+               (name 20 6)
+               " " filename)))
 
 (setq mp/ibuffer-collapsed-groups (list "Emacs" "*Internal*"))
 
@@ -101,5 +100,4 @@
   (--bytes-to-human-readable-file-sizes (buffer-size)))
 
 (provide '+ibuffer)
-
-;;; +ibuffer.el ends here
+;;; +ibuffer.el ends here.

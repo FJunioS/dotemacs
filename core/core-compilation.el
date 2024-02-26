@@ -1,7 +1,4 @@
-;;; core-compilation.el --- _ -*- lexical-binding: t -*-
-;;; Commentary:
-;; Thanks for Spacemacs by disponilizing this solution
-;;; Code:
+;; -*- lexical-binding: t; -*-
 
 (require 'cl-lib)
 (require 'subr-x)
@@ -84,12 +81,12 @@ nil for un-initialized, -1 for stale or orphaned *.elc,
     (e//dir-byte-compile-state
      (concat cache-dir "eln/")))
   (> 0 (if (not (e--check-eln-dir))
-                   0
+           0
          (e--check-eln-dir))))
 
 (when (and (featurep 'native-compile)
-     (not (native-comp-available-p)))
-        (delq 'native-compile features))
+           (not (native-comp-available-p)))
+  (delq 'native-compile features))
 
 ;; Native compilation support (see http://akrl.sdf.org/gccemacs.html)
 (when (boundp 'native-comp-eln-load-path)
@@ -135,3 +132,4 @@ of 'doom sync' or 'doom gc'."
   (e//update-last-emacs-version))
 
 (provide 'core-compilation)
+;;; core-compilation.el ends here.

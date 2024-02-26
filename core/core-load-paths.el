@@ -1,7 +1,5 @@
-;;; core-load-paths.el --- Core standard library -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
-;;; Global Variables
+;; -*- lexical-binding: t; -*-
+
 (require 'core-lib)
 
 (defvar emacs-dir
@@ -30,30 +28,30 @@
                      "~")
                  "~/.emacs.d/")))
            (if (file-directory-p xdg-dir) xdg-dir))
-   "~/.emacs_cfg.d/")))
+         "~/.emacs_cfg.d/")))
   "Where your private configuration is placed.
 
   It will be $USER_SYNC_DIR, ~/sync/emacs/ or ~/.emacs/,
 depends on what is found first Must end in a slash.")
 
 (defvar config-dir (expand-file-name
-          (let ((xdg-dir
-            (or (getenv-internal "XDG_CONFIG_HOME")
-          "~/.config")))
-      (if (file-directory-p xdg-dir) xdg-dir))))
+                    (let ((xdg-dir
+                           (or (getenv-internal "XDG_CONFIG_HOME")
+                               "~/.config")))
+                      (if (file-directory-p xdg-dir) xdg-dir))))
 
 (defconst core-dir
   (file-name-directory load-file-name))
 
 (defconst sync-dir
-   (if-let (cfg-dir (getenv-internal "USER_SYNC_DIR"))
-       (file-name-as-directory cfg-dir)
-     (or (let ((xdg-dir
-                (file-name-concat
-                 (or (getenv-internal "HOME")
-                     "~")
-                 "sync/")))
-           (if (file-directory-p xdg-dir) xdg-dir)))))
+  (if-let (cfg-dir (getenv-internal "USER_SYNC_DIR"))
+      (file-name-as-directory cfg-dir)
+    (or (let ((xdg-dir
+               (file-name-concat
+                (or (getenv-internal "HOME")
+                    "~")
+                "sync/")))
+          (if (file-directory-p xdg-dir) xdg-dir)))))
 
 (defvar cache-dir
   (expand-file-name "emacs/" (or (getenv-internal "XDG_CACHE_HOME") "~/.cache")))
@@ -67,5 +65,4 @@ depends on what is found first Must end in a slash.")
 (make-dir! tmp-dir)
 
 (provide 'core-load-paths)
-
-;;; core-load-paths.el ends here
+;;; core-load-paths.el ends here.

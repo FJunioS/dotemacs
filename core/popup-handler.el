@@ -1,10 +1,9 @@
-;;; popup-handler.el ---  desc  -*- lexical-binding: t; -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
+
 (require 'core-packages)
 
 (use-package on
-  :elpaca (:host github :repo "ajgrf/on.el")
+  :ensure (:host github :repo "ajgrf/on.el")
   :demand t)
 
 (defvar noct-elisp-scratch-hook nil
@@ -108,14 +107,14 @@ possible."
       display-buffer-alist
       :test 'equal)))
 
-(defmacro noct-handle-popup (condition &optional slot)
+(defmacro noct-handle-popup (condition &optional slot side size)
   "Display popups matching CONDITION in a side window at the top.
 When SLOT is non-nil, display popup buffers in that SLOT in the side window."
   `(noct-handle-window ,condition
      '(noct-display-buffer-reuse-window noct-display-buffer-in-side-window)
-     '(side . bottom)
+     '(side . ,(if side side 'bottom))
      '(slot . ,slot)
-     '(window-height . 0.3)))
+     '(window-height . ,(if size size 0.4))))
 
 (defmacro noct-handle-popup-no-header (condition &optional slot)
   "Display popups matching CONDITION in a side window at the top.
@@ -152,4 +151,4 @@ Create another window if one doesn't exist"
   (window-parameter (selected-window) 'window-side))
 
 (provide 'popup-handler)
-;;; popup-handler.el ends here
+;;; popup-handler.el ends here.

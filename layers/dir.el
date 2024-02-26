@@ -1,8 +1,9 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'core-packages)
 
 (use-package dired
-  :elpaca nil
-  :general (leader "-" #'dired-jump)
+  :ensure nil
   :config
   (defun dired--recentf-fix (orig-fun &rest args)
     (let ((recentf-exclude '(".*")))
@@ -10,12 +11,13 @@
   (advice-add 'dired-up-directory :around
               #'dired--recentf-fix))
 
+(with-eval-after-load 'async
+  (autoload 'dired-async-mode "dired-async.el" nil t)
+  (dired-async-mode 1))
+
 (use-package dired-rsync
   :if (executable-find "rsync")
-  :defer t
-  :general
-  (:keymaps 'dired-mode-map
-            "C-r" #'dired-rsync))
+  :defer t)
 
 (use-package dirvish
   :bind (("C-x C-j" . dirvish))
@@ -128,6 +130,7 @@
        "hl" #'dirvish-history-last
 
        "o" #'dirvish-quicksort
+       "O" #'dirvish-chxxx-menu
        "q" #'dirvish-quit
        "s" #'dirvish-quicksort
        "S" #'dirvish-setup-menu
@@ -185,4 +188,4 @@
                                                       truncate-lines t))))
 
 (provide 'dir)
-;; dir.el ends here
+;;; dir.el ends here.

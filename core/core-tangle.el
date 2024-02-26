@@ -1,6 +1,5 @@
-;;; core-tangle.el --- Helper functions for use with async.el. -*- lexical-binding: t -*-
-;;; Commentary:
-;;; Code:
+;; -*- lexical-binding: t; -*-
+
 (require 'core-lib)
 (require 'core-load-paths)
 (require 'org)
@@ -37,5 +36,4 @@ STABLE-ONLY means that won't load config.el"
     (load-config t)))
 
 (provide 'core-tangle)
-
-;;; core-tangle.el ends here
+;;; core-tangle.el ends here.

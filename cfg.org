@@ -15,7 +15,157 @@
 #+END_SRC
 
 #+begin_src elisp
-  ;; test
+  ;;; early-init.el --- Personal configuration file -*- lexical-binding: t -*-
+
+;; Copyright (c) 2021-2023  Junio Santos <info@junio.dev>
+
+;; Author: Junio Santos <info@junio.dev>
+;; URL: https://junio.dev/dotemacs
+;; Version: 0.2.0
+;; Package-Requires: ((emacs "30.1"))
+
+;; This file is NOT part of
+
+;; GNU Emacs.
+
+;; This file is free software: you can redistribute it and/or modify it
+;; under the terms of the GNU General Public License as published by the
+;; Free Software Foundation, either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This file is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this file.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; This file is loaded even when Emacs is started in debug mode
+;; making essential settings usable when debugging and also
+;; can be modified to make startup faster (or slower)
+;; and all settings defined here can be used for the rest of application
+;; Have fun ;)
+;;
+;;; Code:
+(require 'cl-lib)
+
+;; Avoid wasting time loading before init files, also as we are
+;; going to use Straight this would only delay our startup
+(setq package-enable-at-startup nil)
+
+;; Temporarily increase the garbage collection threshold.  These
+;; changes help shave off about half a second of startup time.
+;; later on we'll fix this with `gchm.el'
+(setq gc-cons-threshold most-positive-fixnum)
+
+(setq load-prefer-newer noninteractive)
+
+;; PERF: A second, case-insensitive pass over `auto-mode-alist' is time wasted.
+(setq auto-mode-case-fold nil)
+
+(setq-default cursor-in-non-selected-windows nil)
+(setq highlight-nonselected-windows nil)
+
+(push '(menu-bar-lines . 0)   default-frame-alist)
+(push '(tool-bar-lines . 0)   default-frame-alist)
+(push '(vertical-scroll-bars) default-frame-alist)
+(push '(alpha . (80 . 80))    default-frame-alist)
+
+(setq menu-bar-mode nil
+      tool-bar-mode nil
+      scroll-bar-mode nil)
+
+;; Don't ping things that look like domain names.
+;; Faster redisplay
+(setq bidi-inhibit-bpa t)  ; Emacs 27+
+
+(setq ffap-machine-p-known 'reject)
+
+;; Emacs "updates" its ui more often than it needs to, so slow it down slightly
+(setq idle-update-delay 1.0) ; Default: 0.5
+(setq-default bidi-display-reordering 'left-to-right
+              bidi-paragraph-direction 'left-to-right)
+
+;; Let Version Control handle backups
+(setq create-lockfiles nil
+      make-backup-files nil
+      ;; But in case the user does enable it, some sensible defaults:
+      version-control t     ; number each backup file
+      backup-by-copying t   ; instead of renaming current file (clobbers links)
+      delete-old-versions t ; clean up after itself
+      kept-old-versions 5
+      kept-new-versions 5
+      tramp-backup-directory-alist backup-directory-alist)
+
+;; Better scroll performance by inhibiting fontification while receiving input
+(setq redisplay-skip-fontification-on-input t)
+(setq fast-but-imprecise-scrolling t)
+
+(setq site-run-file nil
+      inhibit-default-init t)
+(set-face-attribute 'default nil
+                    :background "#1d1e2b" :foreground "#1d1e2b")
+(set-face-attribute 'mode-line nil
+                    :background "#2c273a" :foreground "#b1c6d3")
+
+;; By blocking resize events until later, we avoid expensive screen redrawing
+(setq frame-inhibit-implied-resize t)
+
+;; (advice-add #'display-startup-echo-area-message :override #'ignore)
+;; (advice-add #'display-startup-screen :override #'ignore)
+
+(setq initial-major-mode 'fundamental-mode
+      initial-scratch-message nil)
+
+(add-hook 'after-init-hook
+          (lambda () (set-frame-name "home")))
+
+(unless (and (daemonp) noninteractive)
+  (unless initial-window-system
+    (define-advice tty-run-terminal-initialization (:override (&rest _) defer)
+      (advice-remove #'tty-run-terminal-initialization
+                     #'tty-run-terminal-initialization@defer))))
+      #+end_src
+
+#+begin_src elisp :noweb-ref
+;;   (unless init-file-debug
+;;     ;; (define-advice load-file (:override (file) silence)
+;;     ;;   (load file nil 'nomessage))
+;;
+;;     (put 'mode-line-format 'initial-value (default-toplevel-value 'mode-line-format))
+;;     (setq-default mode-line-format nil)
+;;
+;;     (dolist (buf (buffer-list))
+;;       (with-current-buffer buf (setq mode-line-format nil)))
+;;
+;;     (setq-default inhibit-redisplay t
+;;                   inhibit-message t)
+;;
+;;     ;; COMPAT: Then reset it with advice, because `startup--load-user-init-file'
+;;     ;;   will never be interrupted by errors. And if these settings are left
+;;     ;;   set, Emacs could appear frozen or garbled.
+;;     (defun doom--reset-inhibited-vars-h ()
+;;       (setq-default inhibit-redisplay nil
+;;                     ;; Inhibiting `message' only prevents redraws and
+;;                     inhibit-message nil)
+;;       (redraw-frame))
+;;
+;;     (add-hook 'after-init-hook #'doom--reset-inhibited-vars-h)
+;;     (define-advice startup--load-user-init-file (:after (&rest _) undo-inhibit-vars)
+;;       (when init-file-had-error
+;;         (doom--reset-inhibited-vars-h))
+;;       (unless (default-toplevel-value 'mode-line-format)
+;;         (setq-default mode-line-format (get 'mode-line-format 'initial-value))))
+;;
+;;     (advice-add #'tool-bar-setup :override #'ignore)
+;;     (define-advice startup--load-user-init-file (:before (&rest _) defer-tool-bar-setup)
+;;       (advice-remove #'tool-bar-setup #'ignore)
+;;       (add-transient-hook! 'tool-bar-mode (tool-bar-setup)))))
+;;
+;; (load (expand-file-name "init.el" (file-name-directory load-file-name)) nil 'nomessage)
 #+end_src
 
 ** Core lib
@@ -989,7 +1139,7 @@ If after emacs initialization already, run BODY now."
   `(if after-init-time
        (progn ,@body)
      (ju-add-hook 'after-init-hook (lambda () ,@body))))
-        #+end_src
+#+end_src
 
 *** Load Path
 :PROPERTIES:
@@ -2000,6 +2150,7 @@ Necessary otherwise version mismatch
   :config
   (async-bytecomp-package-mode 1))
 (use-package with-editor)
+(use-package transient)
 (use-package hydra
   :demand t
   :ensure t)
@@ -2017,28 +2168,28 @@ Necessary otherwise version mismatch
   (setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
   (auth-source-pass-enable))
 
-(elpaca-wait)
-
 (use-package pinentry
-  :after elpaca-after-init-hook
   :ensure t
   :init
   ;; let's get encryption established
-  (setenv "GPG_AGENT_INFO" nil)  ;; use emacs pinentry
+  (setenv "GPG_AGENT_INFO" nil)  ;; use emacs
+  (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
+
   (setq auth-source-debug t)
 
   (require 'epa-file)
   (epa-file-enable)
   (setq epa-pinentry-mode 'loopback)
   (setq epg-pinentry-mode 'loopback)
-  (unless 'pinentry-mode
-    (pinentry-start))
+  (pinentry-start t)
 
   (require 'org-crypt)
   (org-crypt-use-before-save-magic)
 
   ;; Start GPG agent with SSH support
   (shell-command "gpg-connect-agent /bye"))
+
+(elpaca-wait)
 #+end_src
 
 ** init.el
@@ -2222,6 +2373,7 @@ tell you about it. Very annoying. This prevents that."
   (cl-letf (((symbol-function 'kill-new) #'ignore))
     (apply orig-func args)))
 (advice-add 'backward-kill-word :around #'NOP-kill-new)
+(advice-add 'kill-word :around #'NOP-kill-new)
 
 (setq enable-recursive-minibuffers t)
 
@@ -2272,11 +2424,11 @@ tell you about it. Very annoying. This prevents that."
 
 ;; Emacs by default will warn you when you use some commands for the first time.
 (dolist (c '(narrow-to-region narrow-to-page upcase-region downcase-region
-	                            eshell erase-buffer scroll-left dired-find-alternate-file))
+	           eshell erase-buffer scroll-left dired-find-alternate-file))
   (put c 'disabled nil))
 
 ;; And disable these
-(dolist (c '(eshell project-eshell overwrite-mode iconify-frame diary))
+(dolist (c '(overwrite-mode iconify-frame diary))
   (put c 'disabled t))
 
 (setq x-gtk-use-system-tooltips nil
@@ -2370,300 +2522,300 @@ tell you about it. Very annoying. This prevents that."
 #+END_SRC
 
 #+begin_src elisp
-  (require 'cl-lib)
-  (require 'popup-handler)
-  (require 'core-packages)
+(require 'cl-lib)
+(require 'popup-handler)
+(require 'core-packages)
 
-  (defun save-all-history ()
-    "Save all commands that somehow store any kind of history, like savehist or recentf."
-    (when recentf-mode
-      (recentf-save-list))
-    (when savehist-mode
-      (savehist-save t)))
+(defun save-all-history ()
+  "Save all commands that somehow store any kind of history, like savehist or recentf."
+  (when recentf-mode
+    (recentf-save-list))
+  (when savehist-mode
+    (savehist-save t)))
 
-  ;; save hist files after 10 seconds of idle time
+;; save hist files after 10 seconds of idle time
+;; if not idle, save every 5 minutes
+(run-at-active-interval (* 5 60) 10
+  (silently! (save-all-history)))
+
+(add-hook 'kill-emacs-hook 'save-all-history)
+(display-time-mode)
+
+(csetq display-time-24hr-format t
+       display-time-day-and-date t
+       display-time-load-average-threshold nil)
+
+(use-package auto-save
+  :ensure
+  :init
+  (auto-save-mode)
+  ;; auto-save files after 10 seconds of idle time
   ;; if not idle, save every 5 minutes
-  (run-at-active-interval (* 5 60) 10
-    (silently! (save-all-history)))
+  (csetq auto-save-interval (* 5 60)
+         auto-save-timeout 10))
 
-  (add-hook 'kill-emacs-hook 'save-all-history)
-  (display-time-mode)
+(use-package keychain-environment)
 
-  (csetq display-time-24hr-format t
-         display-time-day-and-date t
-         display-time-load-average-threshold nil)
+(use-package circe
+  :config
+  (setq circe-network-options
+        '(("Libera Chat"
+           :tls t
+           :nick "Juniju"
+           :channels ("#emacs-circe" "#emacs")
+           ))))
 
-  (use-package auto-save
-    :ensure
-    :init
-    (auto-save-mode)
-    ;; auto-save files after 10 seconds of idle time
-    ;; if not idle, save every 5 minutes
-    (csetq auto-save-interval (* 5 60)
-           auto-save-timeout 10))
+;; http://yummymelon.com/devnull/customizing-the-emacs-tools-menu.html
+(easy-menu-add-item global-map '(menu-bar tools)
+                    ["Magit Status"
+                     magit-status
+                     :visible (vc-responsible-backend default-directory)
+                     :help "Show the status of the current Git repository in a buffer"]
+                    "Version Control")
 
-  (use-package keychain-environment)
+(setq savehist-file (concat cache-dir "savehist-backup")
+      save-place-file (concat cache-dir "saveplace")
+      auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
+      auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
 
-  (use-package circe
-    :config
-    (setq circe-network-options
-          '(("Libera Chat"
-             :tls t
-             :nick "Juniju"
-             :channels ("#emacs-circe" "#emacs")
-             ))))
+(savehist-mode 1)
+(auto-save-mode 1)
+(save-place-mode 1)
+(csetq history-length 3000 ; from 300
+       search-ring-max 150 ; from 16
+       mark-ring-max 100
+       global-mark-ring-max 100
+       regexp-search-ring-max 100
+       kmacro-ring-max 100
+       history-delete-duplicates t
+       savehist-autosave-interval nil
+       savehist-save-minibuffer-history t
+       savehist-additional-variables
+       '(kill-ring                    ; clipboard
+         register-alist               ; macros
+         mark-ring                    ; marks
+         global-mark-ring
+         compile-command              ; Compilation
+         compile-history
+         compilation-directory
+         shell-command-history        ; Commands
+         extended-command-history
+         search-ring                  ; Seaches
+         regexp-search-ring))
 
-  ;; http://yummymelon.com/devnull/customizing-the-emacs-tools-menu.html
-  (easy-menu-add-item global-map '(menu-bar tools)
-                      ["Magit Status"
-                       magit-status
-                       :visible (vc-responsible-backend default-directory)
-                       :help "Show the status of the current Git repository in a buffer"]
-                      "Version Control")
+(csetq-default
+ auto-save-default t
+ auto-save-include-big-deletions t)
 
-  (use-package savehist
-    :ensure nil
-    :init
-    (setq
-     savehist-file (concat cache-dir "savehist-backup")
-     save-place-file (concat cache-dir "saveplace")
-     auto-save-list-file-prefix (expand-file-name "autosave/" cache-dir)
-     auto-save-file-name-transforms `((".*" ,auto-save-list-file-prefix t)))
+(add-hook! 'savehist-save-hook
+  (defun savehist-remove-unprintable-registers-h ()
+    "Remove unwriteable registers (e.g. containing window configurations).
+Otherwise, `savehist' would discard `register-alist' entirely if we don't omit
+the unwritable tidbits."
+    ;; Save new value in the temp buffer savehist is running
+    ;; `savehist-save-hook' in. We don't want to actually remove the
+    ;; unserializable registers in the current session!
+    (setq-local register-alist
+                (cl-remove-if-not #'savehist-printable register-alist)))
 
-    (savehist-mode 1)
-    (auto-save-mode 1)
-    (save-place-mode 1)
-    :config
-    (csetq history-length 3000 ; from 300
-           search-ring-max 150 ; from 16
-           mark-ring-max 100
-           global-mark-ring-max 100
-           regexp-search-ring-max 100
-           kmacro-ring-max 100
-           history-delete-duplicates t
-           savehist-autosave-interval nil
-           savehist-save-minibuffer-history t
-           savehist-additional-variables
-           '(kill-ring                    ; clipboard
-             register-alist               ; macros
-             mark-ring                    ; marks
-             global-mark-ring
-             compile-command              ; Compilation
-             compile-history
-             compilation-directory
-             shell-command-history        ; Commands
-             extended-command-history
-             search-ring                  ; Seaches
-             regexp-search-ring))
+  (defun savehist-unpropertize-variables-h ()
+    "Remove text properties from `kill-ring' to reduce savehist cache size."
+    (setq kill-ring
+          (mapcar #'substring-no-properties
+                  (cl-remove-if-not #'stringp kill-ring))
+          register-alist
+          (cl-loop for (reg . item) in register-alist
+                   if (stringp item)
+                   collect (cons reg (substring-no-properties item))
+                   else collect (cons reg item)))))
 
-    (csetq-default
-     auto-save-default t
-     auto-save-include-big-deletions t)
+(csetq
+ ;; save modified buffers without asking
+ compilation-ask-about-save nil
+ compilation-scroll-output 'first-error)
 
-    (add-hook! 'savehist-save-hook
-      (defun savehist-remove-unprintable-registers-h ()
-        "Remove unwriteable registers (e.g. containing window configurations).
-  Otherwise, `savehist' would discard `register-alist' entirely if we don't omit
-  the unwritable tidbits."
-        ;; Save new value in the temp buffer savehist is running
-        ;; `savehist-save-hook' in. We don't want to actually remove the
-        ;; unserializable registers in the current session!
-        (setq-local register-alist
-                    (cl-remove-if-not #'savehist-printable register-alist)))
+;; http://stackoverflow.com/a/20788581/2744245
+(defun my-colorize-compilation-buffer ()
+  (require 'ansi-color)
+  (when (eq major-mode 'compilation-mode)
+    (ansi-color-apply-on-region compilation-filter-start (point-max))))
+(add-hook 'compilation-filter-hook #'my-colorize-compilation-buffer)
+(noct-handle-popup compilation-mode)
 
-      (defun savehist-unpropertize-variables-h ()
-        "Remove text properties from `kill-ring' to reduce savehist cache size."
-        (setq kill-ring
-              (mapcar #'substring-no-properties
-                      (cl-remove-if-not #'stringp kill-ring))
-              register-alist
-              (cl-loop for (reg . item) in register-alist
-                       if (stringp item)
-                       collect (cons reg (substring-no-properties item))
-                       else collect (cons reg item))))))
+(require 'zone-words)
 
-  (csetq
-   ;; save modified buffers without asking
-   compilation-ask-about-save nil
-   compilation-scroll-output 'first-error)
+(use-package vimish-fold
+  :config
+  (vimish-fold-global-mode))
 
-  ;; http://stackoverflow.com/a/20788581/2744245
-  (defun my-colorize-compilation-buffer ()
-    (require 'ansi-color)
-    (when (eq major-mode 'compilation-mode)
-      (ansi-color-apply-on-region compilation-filter-start (point-max))))
-  (add-hook 'compilation-filter-hook #'my-colorize-compilation-buffer)
-  (noct-handle-popup compilation-mode)
+(use-package 0x0)
 
-  (require 'zone-words)
+(use-package tmr
+  :ensure t
+  :custom
+  (tmr-sound-file (concat emacs-assets-dir "singing-bowl.wav")))
 
-  (use-package vimish-fold
-    :config
-    (vimish-fold-global-mode))
+(use-package apropos
+  :ensure nil
+  :init
+  ;; TODO can this be put in :config?
+  (noct-handle-popup apropos-mode)
+  :config
+  (setq apropos-do-all t)
+  (define-key apropos-mode-map "q" #'quit-window))
 
-  (use-package 0x0)
+(use-package helpful
+  :config
+  (map help-map
+       "RET" #'helpful-at-point
+       "f" #'helpful-callable
+       "v" #'helpful-variable
+       "k" #'helpful-key
+       "o" #'helpful-symbol)
 
-  (use-package tmr
-    :ensure t
-    :custom
-    (tmr-sound-file (concat emacs-assets-dir "singing-bowl.wav")))
+  (noct-handle-popup help-mode)
+  (noct-handle-popup (rx "*Help*"))
+  (noct-handle-popup helpful-mode))
 
-  (use-package apropos
-    :ensure nil
-    :init
-    ;; TODO can this be put in :config?
-    (noct-handle-popup apropos-mode)
-    :config
-    (setq apropos-do-all t)
-    (define-key apropos-mode-map "q" #'quit-window))
+(use-package emms
+  :config
+  (emms-all)
+  (setq emms-source-file-default-directory "~/Music"
+        emms-info-asynchronously t
+        emms-browser-covers #'emms-browser-cache-thumbnail-async
+        emms-show-format "♪ %s")
 
-  (use-package helpful
-    :config
-    (map help-map
-         "RET" #'helpful-at-point
-         "f" #'helpful-callable
-         "v" #'helpful-variable
-         "k" #'helpful-key
-         "o" #'helpful-symbol)
+  (if (executable-find "mplayer")
+      (setq emms-player-list '(emms-player-mplayer))
+    (emms-default-players))
+  (global-key "M-7" #'emms-smart-browse))
 
-    (noct-handle-popup help-mode)
-    (noct-handle-popup (rx "*Help*"))
-    (noct-handle-popup helpful-mode))
+(use-package gcmh
+  :init
+  ;; settings used by doom; default infinite threshold causes Emacs to
+  ;; completely freeze after working for a while; maybe this will be better
+  (gcmh-mode 1)
+  (setq gcmh-idle-delay 10
+        gcmh-high-cons-threshold 16777216)
+  (add-hook 'focus-out-hook #'gcmh-idle-garbage-collect))
 
-  (use-package emms
-    :config
-    (emms-all)
-    (setq emms-source-file-default-directory "~/Music"
-          emms-info-asynchronously t
-          emms-browser-covers #'emms-browser-cache-thumbnail-async
-          emms-show-format "♪ %s")
+(use-package recentf
+  :ensure nil
+  :hook (elpaca-after-init-hook . recentf)
+  :init (recentf-mode)
+  :custom
+  (recentf-save-file (concat cache-dir "recentf"))
+  :config
+  (global-map "C-x C-r" #'recentf)
+  (setq recentf-auto-cleanup nil
+        recentf-max-saved-items 200)
+  (csetq recentf-exclude '("^/tmp/emacs/.*" ".*/\\.cache/emacs" ".*/\\.rustup" "^/var/folders\\.*" "^/$"
+                           "COMMIT_EDITMSG\\'" ".*-autoloads\\.el\\'" "[/\\]\\.elpa/\\'" ".*/bookmarks\\'"
+                           "/nix/store/"))
 
-    (if (executable-find "mplayer")
-        (setq emms-player-list '(emms-player-mplayer))
-      (emms-default-players))
-    (global-key "M-7" #'emms-smart-browse))
+  (setq recentf-auto-cleanup (if (daemonp) 300))
+  (add-hook 'kill-emacs-hook #'recentf-save-list)
+  (add-hook 'kill-emacs-hook #'recentf-cleanup))
 
-  (use-package gcmh
-    :init
-    ;; settings used by doom; default infinite threshold causes Emacs to
-    ;; completely freeze after working for a while; maybe this will be better
-    (gcmh-mode 1)
-    (setq gcmh-idle-delay 10
-          gcmh-high-cons-threshold 16777216)
-    (add-hook 'focus-out-hook #'gcmh-idle-garbage-collect))
+(use-package clipetty
+  :ensure t
+  :init
+  ;; only need to load if create a terminal frame
+  ;; `global-clipetty-mode' will not cause issues if enabled for a server with
+  ;; both graphical and terminal frames
+  (general-after-tty
+    (global-clipetty-mode)))
 
-  (use-package recentf
-    :ensure nil
-    :hook (elpaca-after-init-hook . recentf)
-    :init (recentf-mode)
-    :custom
-    (recentf-save-file (concat cache-dir "recentf"))
-    :config
-    (global-map "C-x C-r" #'recentf)
-    (setq recentf-auto-cleanup nil
-          recentf-max-saved-items 200)
-    (csetq recentf-exclude '("^/tmp/emacs/.*" ".*/\\.cache/emacs" ".*/\\.rustup" "^/var/folders\\.*" "^/$"
-                             "COMMIT_EDITMSG\\'" ".*-autoloads\\.el\\'" "[/\\]\\.elpa/\\'" ".*/bookmarks\\'"
-                             "/nix/store/"))
+(use-package which-key
+  :defer 1
+  :hook (elpaca-after-init-hook . which-key-mode)
+  ;; replace `where-is'; don't need because can show in M-x
+  :init
+  ;; should be set before loading
+  (setq which-key-idle-delay 0.3)
+  :config
+  (map ju-toggle-map "W" #'which-key-mode)
+  (map help-map "w" #'which-key-show-top-level)
+  (setq which-key-side-window-location 'bottom
+        which-key-sort-order #'which-key-prefix-then-key-order
+        which-key-add-column-padding 1
+        which-key-max-display-columns nil
+        which-key-min-display-lines 6
+        which-key-side-window-slot -10
+        which-key-sort-uppercase-first nil)
+  (which-key-mode))
 
-    (setq recentf-auto-cleanup (if (daemonp) 300))
-    (add-hook 'kill-emacs-hook #'recentf-save-list)
-    (add-hook 'kill-emacs-hook #'recentf-cleanup))
+(use-package ibuffer
+  :ensure nil
+  :init (require '+ibuffer)
+  :config
+  (map ju-buffer-map "i" #'ibuffer)
+  (map ibuffer-mode-map
+       "<tab>" #'ibuffer-toggle-filter-group
+       "q" #'kill-this-buffer)
+  (add-hook 'ibuffer-mode-hook
+            (lambda ()
+              (ibuffer-switch-to-saved-filter-groups "default")
+              (ibuffer-update nil t)
+              (ibuffer-auto-mode 1)))
 
-  (use-package clipetty
-    :ensure t
-    :init
-    ;; only need to load if create a terminal frame
-    ;; `global-clipetty-mode' will not cause issues if enabled for a server with
-    ;; both graphical and terminal frames
-    (general-after-tty
-      (global-clipetty-mode)))
+  (setq ibuffer-use-header-line t
+        ibuffer-expert t
+        ibuffer-show-empty-filter-groups nil))
 
-  (use-package which-key
-    :defer 1
-    :hook (elpaca-after-init-hook . which-key-mode)
-    ;; replace `where-is'; don't need because can show in M-x
-    :init
-    ;; should be set before loading
-    (setq which-key-idle-delay 0.3)
-    :config
-    (map ju-toggle-map "W" #'which-key-mode)
-    (map help-map "w" #'which-key-show-top-level)
-    (setq which-key-side-window-location 'bottom
-          which-key-sort-order #'which-key-prefix-then-key-order
-          which-key-add-column-padding 1
-          which-key-max-display-columns nil
-          which-key-min-display-lines 6
-          which-key-side-window-slot -10
-          which-key-sort-uppercase-first nil)
-    (which-key-mode))
+;; small QOL
+(defalias #'elisp-mode #'emacs-lisp-mode)
 
-  (use-package ibuffer
-    :ensure nil
-    :init (require '+ibuffer)
-    :config
-    (map ju-buffer-map "i" #'ibuffer)
-    (map ibuffer-mode-map
-         "<tab>" #'ibuffer-toggle-filter-group
-         "q" #'kill-this-buffer)
-    (add-hook 'ibuffer-mode-hook
-              (lambda ()
-                (ibuffer-switch-to-saved-filter-groups "default")
-                (ibuffer-update nil t)
-                (ibuffer-auto-mode 1)))
+(use-package password-store)
+(use-package password-store-otp)
+(use-package pass)
 
-    (setq ibuffer-use-header-line t
-          ibuffer-expert t
-          ibuffer-show-empty-filter-groups nil))
+;; ----------------------------
 
-  ;; small QOL
-  (defalias #'elisp-mode #'emacs-lisp-mode)
+(use-package vundo :ensure t)
+(use-package undo-fu :ensure t
+  :bind (("C-/" . #'undo-fu-only-undo)
+         ("C-S-/" . #'undo-fu-only-redo))
+  :custom
+  (undo-limit 67108864)          ; 64mb.
+  (undo-strong-limit 100663296)  ; 96mb.
+  (undo-outer-limit 1006632960)) ; 960mb.
 
-  (use-package password-store)
-  (use-package password-store-otp)
-  (use-package pass)
+;; endup corrupting too frequently
+(use-package undo-tree
+  :disabled t
+  :init
+  (csetq-default undo-tree-history-directory-alist
+                 `((".*" . ,(concat cache-dir "undo-tree/"))))
+  (global-undo-tree-mode 1))
 
-  ;; ----------------------------
+(use-package eshell
+  :ensure
+  :hook
+  (eshell-mode-hook . (lambda () (setq outline-regexp eshell-prompt-regexp)))
+  :init
+  (require 'em-smart)
+  (setq eshell-where-to-jump 'begin)
+  (setq eshell-review-quick-commands nil)
+  (setq eshell-smart-space-goes-to-end t)
+  ;; Stop asking if you really want to open eshell
+  (put 'eshell 'disabled nil)
+  (csetq eshell-login-script (concat emacs-dir ".eshell_profile"))
+  (after! consult
+    (require 'em-hist)
+    (map eshell-hist-mode-map "C-c C-l" #'consult-history)))
 
-  (use-package vundo :ensure t)
-  (use-package undo-fu :ensure t
-    :bind (("C-/" . #'undo-fu-only-undo)
-           ("C-S-/" . #'undo-fu-only-redo))
-    :custom
-    (undo-limit 67108864)          ; 64mb.
-    (undo-strong-limit 100663296)  ; 96mb.
-    (undo-outer-limit 1006632960)) ; 960mb.
+(use-package eat
+  :custom
+  (eat-enable-shell-prompt-annotation t)
+  :bind
+  (:map eat-mode-map
+        ("C-t" . 'ju-menu-map)
+        ("C-l" . #'eat-reset))
+  :init
+  ;; For `eat-eshell-mode'.
+  (add-hook! 'eshell-load-hook #'eat-eshell-visual-command-mode #'eat-eshell-mode))
 
-  ;; endup corrupting too frequently
-  (use-package undo-tree
-    :disabled t
-    :init
-    (csetq-default undo-tree-history-directory-alist
-                   `((".*" . ,(concat cache-dir "undo-tree/"))))
-    (global-undo-tree-mode 1))
-
-  (use-package eshell
-    :ensure
-    :hook
-    (eshell-mode-hook . (lambda () (setq outline-regexp eshell-prompt-regexp)))
-    :init
-    (after! consult
-      (require 'em-hist)
-      (map eshell-hist-mode-map "C-c C-l" #'consult-history)))
-
-  (use-package eat
-    :custom
-    (eat-enable-shell-prompt-annotation t)
-    :bind
-    (:map eat-mode-map
-          ("C-t" . 'ju-menu-map)
-          ("C-l" . #'eat-reset))
-    :hook
-    ((eshell-load-hook . eat-eshell-mode)
-     (eshell-load-hook . eat-eshell-visual-command-mode)))
-
-  ;; Even coming together with Magit, it is nice to have this separately.
-  (use-package transient)
 #+end_src
 
 ** Completion
@@ -2698,84 +2850,82 @@ Require package system
 
 *** corfu
 #+begin_src elisp
-  (use-package corfu
-    :ensure (corfu :files (:defaults "extensions/*.el"))
-    :hook
-    ((prog-mode-hook . corfu-mode)
-     (shell-mode-hook . corfu-mode)
-     (eshell-mode-hook . corfu-mode)
-     (eglot-managed . corfu-mode))
-    :config
-    (defun corfu-enable-in-minibuffer ()
-      (when (where-is-internal #'completion-at-point (list (current-local-map)))
-        ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
-        (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
-                    corfu-popupinfo-delay nil)
-        (corfu-mode 1)))
+(use-package corfu
+  :ensure (corfu :files (:defaults "extensions/*.el"))
+  :init
+  (dolist (mode '(prog-mode-hook org-mode-hook shell-mode-hook eshell-mode-hook eglot-managed))
+    (add-hook (+unquote mode) #'corfu-mode))
+  :config
+  (defun corfu-enable-in-minibuffer ()
+    (when (where-is-internal #'completion-at-point (list (current-local-map)))
+      ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
+      (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
+                  corfu-popupinfo-delay nil)
+      (corfu-mode 1)))
 
-    (dolist (c '(minibuffer-setup-hook eshell-mode-hook))
-      (add-hook c #'corfu-enable-in-minibuffer))
+  (dolist (c '(minibuffer-setup-hook eshell-mode-hook))
+    (add-hook c #'corfu-enable-in-minibuffer))
 
-    (csetq corfu-auto t
-           corfu-preview-current nil
-           corfu-quit-no-match nil
-           corfu-auto-delay 0.15
-           corfu-indexed-start 1
-           corfu-auto-prefix 3)
+  (csetq corfu-auto t ;; Popup appears automatically
+         corfu-preview-current t ;; Show candidate on pointer
+         corfu-quit-no-match nil
+         corfu-indexed-start 1
+         corfu-auto-delay 0.15
+         corfu-auto-prefix 3)
 
-    (dolist (c (list (cons "SPC" " ")
-                     (cons "." ".")
-                     (cons "C-(" "\\(")
-                     (cons "C-)" "\\)")
-                     (cons "C-[" "\\[")
-                     (cons "C-]" "\\]")
-                     (cons "=" "=")
-                     (cons ":" ":")
-                     (cons "C-{" "\\[")
-                     (cons "C-}" "\\]")
-                     (cons "," ",")
-                     (cons "-" "-")
-                     (cons ":" ":")
-                     (cons ")" ")")
-                     (cons "}" "}")
-                     (cons "]" "]")))
-      (define-key corfu-map (kbd (car c)) `(lambda ()
-                                             (interactive)
-                                             #'(corfu-quit)
-                                             (insert ,(cdr c)))))
+  (dolist (c (list (cons "SPC" " ")
+                   (cons "." ".")
+                   (cons "C-(" "\\(")
+                   (cons "C-)" "\\)")
+                   (cons "C-[" "\\[")
+                   (cons "C-]" "\\]")
+                   (cons "=" "=")
+                   (cons ":" ":")
+                   (cons "C-{" "\\[")
+                   (cons "C-}" "\\]")
+                   (cons "," ",")
+                   (cons "-" "-")
+                   (cons ":" ":")
+                   (cons ")" ")")
+                   (cons "}" "}")
+                   (cons "]" "]")))
+    (define-key corfu-map (kbd (car c)) `(lambda ()
+                                           (interactive)
+                                           #'(corfu-quit)
+                                           (insert ,(cdr c)))))
 
-    (pushnew! savehist-additional-variables 'corfu-history)
+  (pushnew! savehist-additional-variables 'corfu-history)
 
-    ;; (defmacro generate-corfu-select-index! (index)
-    ;;   "return a named function to run `corfu-complete' for index."
-    ;;   `(defun! ,(intern (format "ju-corfu-enter-index-%s" index)) ()
-    ;;      ,(format "call `corfu-complete' for index %s." index)
-    ;;      (interactive)
-    ;;      (let ((corfu--index ,index))
-    ;;        (corfu-complete))))
+  ;; (defmacro generate-corfu-select-index! (index)
+  ;;   "return a named function to run `corfu-complete' for index."
+  ;;   `(defun! ,(intern (format "ju-corfu-enter-index-%s" index)) ()
+  ;;      ,(format "call `corfu-complete' for index %s." index)
+  ;;      (interactive)
+  ;;      (let ((corfu--index ,index))
+  ;;        (corfu-complete))))
 
-    (map corfu-map
-         "C-SPC" #'corfu-insert-separator
-         "C-h" #'corfu--popup-show
-         "C-t" #'corfu-insert
-         "C-n" #'corfu-next
-         "C-p" #'corfu-previous
-         "C-l" #'corfu-complete
-         "C-v" #'corfu-scroll-down
-         "C-S-v" #'corfu-scroll-up
-         "<tab>" #'corfu-complete
+  (map corfu-map
+       "C-SPC" #'corfu-insert-separator
+       "C-h" #'corfu--popup-show
+       "C-t" #'corfu-insert
+       "C-n" #'corfu-next
+       "C-p" #'corfu-previous
+       "C-l" #'corfu-complete
+       "C-v" #'corfu-scroll-down
+       "C-S-v" #'corfu-scroll-up
+       "<tab>" #'corfu-complete
 
-         "<return>" #'(lambda () (interactive)
-                        (corfu-complete)
-                        (call-interactively #'newline))
+       "<return>" #'(lambda () (interactive)
+                      (corfu-complete)
+                      (call-interactively #'newline))
 
-         "ESC" (defun corfu-quit-minibuffer ()
-                 "`escape-quit-minibuffer' but quit corfu if active."
-                 (interactive)
-                 (when (and (boundp 'corfu--frame)
-                            (frame-live-p corfu--frame))
-                   (corfu-quit))
-                 (keyboard-quit))))
+       "ESC" (defun corfu-quit-minibuffer ()
+               "`escape-quit-minibuffer' but quit corfu if active."
+               (interactive)
+               (when (and (boundp 'corfu--frame)
+                          (frame-live-p corfu--frame))
+                 (corfu-quit))
+               (keyboard-quit))))
 #+end_src
 
 *** utils
@@ -4556,14 +4706,17 @@ Here +meow is called
 (defvar fixed-pitch-font "Fantasque Sans Mono")
 (defvar variable-pitch-font "Iosevka Aile")
 
+;; Define Main Font Families
 (set-face-attribute 'default nil :family default-font)
 (set-face-attribute 'fixed-pitch nil :family fixed-pitch-font)
 (set-face-attribute 'variable-pitch nil :family variable-pitch-font)
+;; … Set face families
 (set-face-attribute 'mode-line nil :family variable-pitch-font)
-
+;; Define height
 (set-face-attribute 'default nil :height 160)
 
-;; Unicode
+;; Avoid Emacs set default font to apply on symbols
+;; This may be useful only for Variable Pitch fonts (Noto Sans, FreeSerif, …)
 (csetq-default use-default-font-for-symbols nil)
 
 (set-fontset-font t 'unicode (face-attribute 'default :family))
@@ -4577,7 +4730,6 @@ Here +meow is called
   (when (member font (font-family-list))
     (set-fontset-font t 'unicode font nil 'append)))
 (set-fontset-font t 'unicode (font-spec :family "Noto Sans") nil 'append)
-
 
 (use-package emojify
   :hook (elpaca-after-init-hook . global-emojify-mode)
@@ -4668,7 +4820,7 @@ Org related
  ;; Org styling, hide markup etc.
  org-hide-emphasis-markers t
  org-pretty-entities t
- org-ellipsis "…"
+ org-ellipsis "▾"
 
  ;; Agenda styling
  org-agenda-tags-column 0

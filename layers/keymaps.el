@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; keymaps.el ---  desc  -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
@@ -35,7 +37,7 @@
 
 ;;; Define 'leader-map'
 (create-keymap leader-map)
-(global-map "C-c" leader-map)
+(global-map "C-t" leader-map)
 
 (create-keymap ju-toggle-map)
 (create-keymap ju-search-map)
@@ -52,7 +54,6 @@
 (create-keymap ju-bookmark-map)
 (create-keymap ju-code-map)
 (create-keymap ju-rectangle-map)
-
 (create-keymap ju-menu-map)
 
 (map leader-map
@@ -72,24 +73,32 @@
      "T" (cons "Toggle" ju-toggle-map)
      "w" (cons "Window" ju-window-map)
 
-     "R" (cons "Rectangle" ju-rectangle-map)
-     )
+     "R" (cons "Rectangle" ju-rectangle-map))
 
 ;; default
 (map leader-map
-     "<tab>" 'mode-line-other-buffer
+     "TAB" 'mode-line-other-buffer
      "*" #'delete-window
      "(" #'delete-other-windows
      "-" #'split-window-below
      "v" #'split-window-right
      "k" #'+kill-window)
 
-(global-map "C-;" ju-menu-map)
+(map global-map
+     "C-S-c" #'compile
+     "C-S-r" #'recompile
+     "C-c k" #'+kill-window
+     "C-c *" #'delete-window
+     "C-c (" #'delete-other-windows
+     "C-c -" #'split-window-below
+     "C-c v" #'split-window-right
+     "C-c TAB" 'mode-line-other-buffer)
 
 (map ju-buffer-map
      "k" #'+kill-this-buffer
      "i" #'ibuffer
      "b" #'switch-to-buffer)
+
 (map ju-open-map
      "c" (cons "Emacs Config" (lambda () (interactive) (consult-fd emacs-dir))))
 
@@ -142,3 +151,7 @@
 
 (provide 'keymaps)
 ;;; keymaps.el ends here
+
+
+(provide 'keymaps)
+;;; keymaps.el ends here.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (setq gnutls-verify-error noninteractive
       gnutls-algorithm-priority
       (when (boundp 'libgnutls-version)
@@ -16,10 +18,10 @@
       ;; necessary). See https://redd.it/8sykl1 for details.
       tls-program '("openssl s_client -connect %h:%p -CAfile \
  %t -nbio -no_ssl3 -no_tls1 -no_tls1_1 -ign_eof"
-"gnutls-cli -p %p --dh-bits=3072 --ocsp --x509cafile=%t \
+                    "gnutls-cli -p %p --dh-bits=3072 --ocsp --x509cafile=%t \
 --strict-tofu --priority='SECURE192:+SECURE128:-VERS-ALL:+VERS-TLS1.2:+VERS-TLS1.3' %h"
                     ;; compatibility fallbacks
-"gnutls-cli -p %p %h"))
+                    "gnutls-cli -p %p %h"))
 
 (provide 'core-security)
-;;; core-security.el ends here
+;;; core-security.el ends here.

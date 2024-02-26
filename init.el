@@ -1,8 +1,9 @@
-;; init.el --- Personal configuration file -*- lexical-binding: t -*-
+;; -*- lexical-binding: t; -*-
+;; init.el -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2021-2023  Junio Santos <info@junio.dev>
 
-;; Author: Junio Santos <info@junio.dev>
+;; Author: Junio Santos <hello@junio.dev>
 ;; URL: https://junio.dev/dotemacs
 ;; Version: 0.2.0
 ;; Package-Requires: ((emacs "30.1"))
@@ -22,25 +23,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this file.  If not, seek<https://www.gnu.org/licenses/>.
 
-;;; Commentary:
-
-;; Currently I've been using some configuration as reference
-;; from Sacha Chu(i) and Protesilaos stravou(ii).  Thank you very much
-;; (i): https://sachachua.com/
-;; (ii): https://git.sr.ht/~protesilaks/dotfiles
-
-;; See my dotfiles: <https://junio.dek/dotfiles>
-;;;; Code:
+;;; Code:
 
 ;;; Setup path
 (require 'subr-x)
 (require 'cl-lib)
 
 (defvar emacs-dir (if (string= (expand-file-name "~/.cache/emacs/") user-emacs-directory)
-                           (if (file-exists-p "~/.emacs.d/")
-                               (expand-file-name "~/.emacs.d/")
-                             (expand-file-name "~/.config/emacs/"))
-                         ;; else
+                      (if (file-exists-p "~/.emacs.d/")
+                          (expand-file-name "~/.emacs.d/")
+                        (expand-file-name "~/.config/emacs/"))
+                    ;; else
                     (expand-file-name user-emacs-directory))
   "Emacs root directory.")
 
@@ -57,7 +50,6 @@
 Don't backup remote directories or encrypted files."
   (not (or (file-remote-p file)
            (string-match-p (car epa-file-handler) file))))
-
 ;;(when (interactivep)
 (setq frame-resize-pixelwise t
 	    frame-inhibit-implied-resize t
@@ -76,11 +68,9 @@ tell you about it. Very annoying. This prevents that."
   :around #'after-find-file
   (letf! ((#'sit-for #'ignore))
     (apply fn args)))
-
 ;; ** User info
 (setq-default user-full-name "Junio Santos"
               user-mail-address "git@junio.dev")
-
 ;; Avoid buffer lag
 (setq process-adaptive-read-buffering nil)
 (setq read-process-output-max (* 4 1024 1024)) ; from 800Kb to 4Mb
@@ -92,7 +82,6 @@ tell you about it. Very annoying. This prevents that."
 
 ;; Bookmarks
 (setq bookmark-default-file (concat cache-dir "bookmarks"))
-(setq bookmark-save-flag 1)
 
 (defun init--enable-messages-buffer-after-init ()
   "Enable messaging after init and it doesn't populate message
@@ -119,9 +108,8 @@ tell you about it. Very annoying. This prevents that."
 (setq text-quoting-style 'grave)
 
 ;; Linux copying is transferred to Emacs kill-ring
-(setq select-enable-clipboard t)
-(setq select-enable-primary t)  ; Mouse selection yanks
-
+;; (setq select-enable-clipboard t)
+;; (setq select-enable-primary t)  ; Mouse selection yanks
 ;; Basic modes
 (electric-pair-mode 1)
 (global-subword-mode 1)
@@ -134,19 +122,18 @@ tell you about it. Very annoying. This prevents that."
 (minibuffer-depth-indicate-mode 1)
 (blink-cursor-mode -1)
 (undelete-frame-mode 1) ; Emacs 29
-
-(add-hook! '(prog-mode-hook
-             org-mode-hook
-             text-mode-hook) #'hl-line-mode)
-
+(add-hook 'prog-mode-hook #'hl-line-mode)
+(add-hook 'text-mode-hook #'hl-line-mode)
+(add-hook 'org-mode-hook  #'hl-line-mode)
 (setq find-file-visit-truename t
       vc-follow-symlinks t)
-
 (defun NOP-kill-new (orig-func &rest args)
   "Run ORIG-FUNC with ARGS preventing any `kill-new's from running."
   ;; http://endlessparentheses.com/understanding-letf-and-how-it-replaces-flet.html
   (cl-letf (((symbol-function 'kill-new) #'ignore))
     (apply orig-func args)))
+(advice-add 'backward-kill-word :around #'NOP-kill-new)
+(advice-add 'kill-word :around #'NOP-kill-new)
 
 (setq enable-recursive-minibuffers t)
 
@@ -155,12 +142,12 @@ tell you about it. Very annoying. This prevents that."
 (setq-default fill-column 80)
 (setq mouse-autoselect-window t
       focus-follows-mouse t)
-(setq visual-line-fringe-indicators '(t t))
-(setq split-height-threshold nil
-      split-width-threshold 0)
+(csetq visual-line-fringe-indicators '(nil nil))
+(csetq split-height-threshold 2
+       split-width-threshold 2)
 
 (setq scroll-margin 5
-      scroll-conservatively 20)
+      scroll-conservatively 1)
 
 (setq uniquify-buffer-name-style 'forward)
 (setq sentence-end-double-space t)
@@ -175,11 +162,9 @@ tell you about it. Very annoying. This prevents that."
       (when (= p (point))
         ad-do-it))))
 
-
 (setq-default indent-tabs-mode nil
               tab-width 4)
-(setq-hook! 'emacs-lisp-mode-hook
-  tab-width 2)
+(setq-hook! 'emacs-lisp-mode-hook tab-width 2)
 
 (setq message-log-max 10000)
 (setq kill-ring-max 300)
@@ -199,11 +184,11 @@ tell you about it. Very annoying. This prevents that."
 
 ;; Emacs by default will warn you when you use some commands for the first time.
 (dolist (c '(narrow-to-region narrow-to-page upcase-region downcase-region
-	                            erase-buffer scroll-left dired-find-alternate-file))
+	           eshell erase-buffer scroll-left dired-find-alternate-file))
   (put c 'disabled nil))
 
 ;; And disable these
-(dolist (c '(eshell project-eshell overwrite-mode iconify-frame diary))
+(dolist (c '(overwrite-mode iconify-frame diary))
   (put c 'disabled t))
 
 (setq x-gtk-use-system-tooltips nil
@@ -214,7 +199,12 @@ tell you about it. Very annoying. This prevents that."
 (setq-default cursor-in-non-selected-windows nil)
 (setq highlight-nonselected-windows nil)
 
+(symbol-function 'xah-select-line)
 (setq idle-update-delay 1)
+(defun my/restore-update-delay ()
+  (setq idle-update-delay 0.5))
+(add-hook 'after-init-hook 'my/restore-update-delay)
+
 (setq read-file-name-completion-ignore-case t
       read-buffer-completion-ignore-case t
       completion-ignore-case t)
@@ -225,17 +215,16 @@ tell you about it. Very annoying. This prevents that."
 (require 'core-packages nil t)
 
 ;;; Allow non-floating resizing with mouse.
-(setq window-divider-default-bottom-width 4
-      window-divider-default-right-width 4)
+(csetq window-divider-default-bottom-width 2
+       window-divider-default-right-width 2)
 (window-divider-mode)
 
 ;; Avoid packages store cache on emacs folder.
 (setq user-emacs-directory cache-dir)
-
 (defconst ju-layers
   '(keymaps
     essentials
-    email
+    ;; email
     OS
     window
     navigation
@@ -249,18 +238,23 @@ tell you about it. Very annoying. This prevents that."
     readers)
   "list of layers to load.")
 (dolist (mod ju-layers)
-  (require mod))
-
+  (require mod nil t))
 (setq debug-on-error init-file-debug)
 (setq inhibit-message nil)
 
 (let ((cfile (concat emacs-dir "custom.el")))
   (when (file-exists-p cfile)
-    (csetq custom-file cfile)
-    (load-file cfile)))
+    (setq custom-file cfile))
+  (add-hook 'elpaca-after-init-hook (lambda () (load custom-file 'noerror))))
 
 (require 'server)
 (unless (server-running-p)
-(server-start))
+  (server-start))
 
-;;; init.el ends here
+;;END OF INIT FILE
+;; prevents `elpaca-after-init-hook` from running more than once.
+(when (require 'elpaca nil t)
+  (setq elpaca-after-init-time (or elpaca-after-init-time (current-time)))
+  (elpaca-wait))
+
+;;; init.el ends here.

@@ -19,6 +19,8 @@
 
 ;; iSync: A command line application which synchronizes mailboxes.
 (use-package notmuch)
+(use-package password-store)
+(use-package password-store-otp)
 (use-package pass)
 
 (provide 'email)

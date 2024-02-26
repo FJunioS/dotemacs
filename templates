@@ -1,61 +1,24 @@
-;; -*- lisp -*-
 
-fundamental-mode ;; Available everywhere
+org-mode :when (org-in-src-block-p)
+(noreq ":noweb-ref " (p "pkg name") "-req")
 
-(today (format-time-string "%Y-%m-%d"))
+org-mode :when (and (empty-line) (not (org-in-src-block-p)))
 
-prog-mode
+(noweb ":PROPERTIES:" n
+":header-args: :tangle " (p (l '("layers/" "lisp/" "core/" "")) layer) (p "Package name: " pkg t) (downcase pkg) ".el "
+":noweb yes :noweb-ref " (downcase pkg) "-cfg" n
+":END:" n n
 
-(fixme (if (derived-mode-p 'emacs-lisp-mode) ";; " comment-start) "FIXME ")
-(todo (if (derived-mode-p 'emacs-lisp-mode) ";; " comment-start) "TODO ")
-(bug (if (derived-mode-p 'emacs-lisp-mode) ";; " comment-start) "BUG ")
-(hack (if (derived-mode-p 'emacs-lisp-mode) ";; " comment-start) "HACK ")
+"#+BEGIN_SRC elisp :noweb-ref nil" n
+";; -*- lexical-binding: t; -*-" n n
 
-lisp-mode emacs-lisp-mode ;; Specify multiple modes
+"<<" (downcase pkg) "-cfg>>" n n
 
-(lambda "(lambda (" p ")" n> r> ")")
+"(provide '" (downcase pkg) ")" n
+";;; " (downcase pkg) ".el ends here." n
+"#+END_SRC" n q)
 
-emacs-lisp-mode
-
-(use "(use-package " p n> (p ":ensure t") n> n ")")
-(provide "(provide '" (file-name-base (or (buffer-file-name) (buffer-name))) ")" n
-         ";;; " (file-name-nondirectory (or (buffer-file-name) (buffer-name)))
-         " ends here" n)
-(advice "(defun " (p "adv" name) " (&rest app)" n> p n> "(apply app))" n>
-        "(advice-add #'" (p "fun") " " (p ":around") " #'" (s name) ")")
-
-(header ";;; " (or (buffer-file-name) (buffer-name)) " -- " p
-        " -*- lexical-binding: t -*-" n n)
-(provide "(provide '" (file-name-base (or (buffer-file-name) (buffer-name))) ")" n
-         ";;; " (file-name-nondirectory (or (buffer-file-name) (buffer-name))) " ends here" n)
-(package (i header) r n n (i provide))
-
-text-mode
-
-(box "┌─" (make-string (length str) ?─) "─┐" n
-     "│ " (s str)                       " │" n
-     "└─" (make-string (length str) ?─) "─┘" n)
-(abox "+-" (make-string (length str) ?-) "-+" n
-      "| " (s str)                       " |" n
-      "+-" (make-string (length str) ?-) "-+" n)
-
-org-mode
-
-(caption "#+caption: ")
-(drawer ":" p ":" n r ":end:")
-(begin "#+begin_" (s name) n> r> n "#+end_" name)
-(quote "#+begin_quote" n> r> n "#+end_quote")
-(sidenote "#+begin_sidenote" n> r> n "#+end_sidenote")
-(marginnote "#+begin_marginnote" n> r> n "#+end_marginnote")
-(example "#+begin_example" n> r> n "#+end_example")
-(center "#+begin_center" n> r> n "#+end_center")
-(ascii "#+begin_export ascii" n> r> n "#+end_export")
-(html "#+begin_export html" n> r> n "#+end_export")
-(latex "#+begin_export latex" n> r> n "#+end_export")
-(comment "#+begin_comment" n> r> n "#+end_comment")
-(verse "#+begin_verse" n> r> n "#+end_verse")
-(src "#+begin_src " q n r n "#+end_src")
-(gnuplot "#+begin_src gnuplot :var data=" (p "table") " :file " (p "plot.png") n r n "#+end_src" :post (org-edit-src-code))
-(elisp "#+begin_src emacs-lisp" n r n "#+end_src" :post (org-edit-src-code))
-(inlsrc "src_" p "{" q "}")
-(title "#+title: " p n "#+author: Daniel Mendler" n "#+language: en")
+;; Local Variables:
+;; mode: lisp-data
+;; outline-regexp: "[a-z]"
+;; End:
